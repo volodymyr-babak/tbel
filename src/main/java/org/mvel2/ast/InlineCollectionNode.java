@@ -134,9 +134,16 @@ public class InlineCollectionNode extends ASTNode {
       HashMap map = new HashMap();
 
       for (Object item : ((Map) o).keySet()) {
-        map.put(execGraph(item, type, ctx, factory), execGraph(((Map) o).get(item), type, ctx, factory));
+        Object key = item;
+        if (key instanceof String && ((String) key).trim().length() > 0 && !((String) key).startsWith("'")) {
+          try {
+            key = Integer.parseInt((String) key);
+          } catch (NumberFormatException e) {}
+        } else {
+          key = execGraph(key, type, ctx, factory);
+        }
+        map.put(key, execGraph(((Map) o).get(item), type, ctx, factory));
       }
-
       return map;
     }
     else if (o instanceof Object[]) {

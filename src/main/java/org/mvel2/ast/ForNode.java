@@ -64,6 +64,7 @@ public class ForNode extends BlockNode {
     VariableResolverFactory ctxFactory = indexAlloc ? factory : new MapVariableResolverFactory(new HashMap<String, Object>(1), factory);
     Object v;
     for (initializer.getValue(ctx, thisValue, ctxFactory); (Boolean) condition.getValue(ctx, thisValue, ctxFactory); after.getValue(ctx, thisValue, ctxFactory)) {
+      checkExecution(ctx);
       v = compiledBlock.getValue(ctx, thisValue, ctxFactory);
       if (ctxFactory.tiltFlag()) return v;
     }
@@ -73,6 +74,7 @@ public class ForNode extends BlockNode {
   public Object getReducedValue(Object ctx, Object thisValue, VariableResolverFactory factory) {
     Object v;
     for (initializer.getValue(ctx, thisValue, factory = new MapVariableResolverFactory(new HashMap<String, Object>(1), factory)); (Boolean) condition.getValue(ctx, thisValue, factory); after.getValue(ctx, thisValue, factory)) {
+      checkExecution(ctx);
       v = compiledBlock.getValue(ctx, thisValue, factory);
       if (factory.tiltFlag()) return v;
     }

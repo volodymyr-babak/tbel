@@ -692,6 +692,7 @@ public strictfp class MathProcessor {
         return ((Number) in).doubleValue();
       case DataTypes.CHAR:
       case DataTypes.W_CHAR:
+      case DataTypes.STRING:
         return Double.parseDouble(String.valueOf(in));
       case DataTypes.BOOLEAN:
       case DataTypes.W_BOOLEAN:
@@ -699,8 +700,6 @@ public strictfp class MathProcessor {
       case DataTypes.W_BYTE:
       case DataTypes.BYTE:
         return ((Byte) in).doubleValue();
-      case DataTypes.STRING:
-        return Double.parseDouble((String) in);
       case DataTypes.OBJECT:
         return in instanceof Number ? ((Number) in).doubleValue() : Double.parseDouble((String) in);
     }

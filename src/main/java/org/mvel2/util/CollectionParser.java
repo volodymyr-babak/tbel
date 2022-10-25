@@ -96,6 +96,7 @@ public class CollectionParser {
   private Object parseCollection(boolean subcompile) {
     if (end - start == 0) {
       if (type == LIST) return new ArrayList();
+      else if (type == MAP) return new HashMap<>();
       else return EMPTY_ARRAY;
     }
 
@@ -124,7 +125,7 @@ public class CollectionParser {
       switch (property[cursor]) {
         case '{':
           if (newType == -1) {
-            newType = ARRAY;
+            newType = MAP;
           }
 
         case '[':
@@ -141,7 +142,13 @@ public class CollectionParser {
               (cursor = balancedCapture(property, st, end, property[st])) - st - 1, subcompile, colType, pCtx);
 
           if (type == MAP) {
-            map.put(curr, o);
+            if (curr == null) {
+              list = new ArrayList<Object>();
+              list.add(curr = o);
+              type = type == MAP ? ARRAY : LIST;
+            } else {
+              map.put(curr, o);
+            }
           }
           else {
             list.add(curr = o);
@@ -176,7 +183,13 @@ public class CollectionParser {
             list.add(new String(property, st, cursor - st).trim());
           }
           else {
-            map.put(curr, createStringTrimmed(property, st, cursor - st));
+            if (curr == null) {
+              list = new ArrayList<Object>();
+              list.add(new String(property, st, cursor - st).trim());
+              type = type == MAP ? ARRAY : LIST;
+            } else {
+              map.put(curr, createStringTrimmed(property, st, cursor - st));
+            }
           }
 
           if (subcompile) {
@@ -208,6 +221,17 @@ public class CollectionParser {
             cursor = balancedCapture(property, cursor, '{');
           }
           break;
+        case '/':
+          if (cursor + 1 < end) {
+            if (property[cursor + 1] == '/') {
+              cursor = skipWhitespace(property, cursor);
+              cursor--;
+            } else if (property[cursor + 1] == '*') {
+              cursor = skipWhitespace(property, cursor);
+              cursor--;
+            }
+          }
+          break;
       }
     }
 
@@ -219,7 +243,14 @@ public class CollectionParser {
       if (cursor < (end - 1)) cursor++;
 
       if (type == MAP) {
-        map.put(curr, createStringTrimmed(property, st, cursor - st));
+        if (curr == null) {
+          list = new ArrayList<Object>();
+          if (cursor < end) cursor++;
+          list.add(createStringTrimmed(property, st, cursor - st));
+          type = type == MAP ? ARRAY : LIST;
+        } else {
+          map.put(curr, createStringTrimmed(property, st, cursor - st));
+        }
       }
       else {
         if (cursor < end) cursor++;

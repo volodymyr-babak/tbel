@@ -968,8 +968,8 @@ public class ParseTools {
 
   public static Class findClass(VariableResolverFactory factory, String name, ParserContext pCtx) throws ClassNotFoundException {
     try {
-      if (LITERALS.containsKey(name)) {
-        return (Class) LITERALS.get(name);
+      if (pCtx != null && pCtx.hasLiteral(name) || pCtx == null && LITERALS.containsKey(name)) {
+        return (Class) (pCtx != null ? pCtx.getLiteral(name) : LITERALS.get(name));
       }
       else if (factory != null && factory.isResolveable(name)) {
         return (Class) factory.getVariableResolver(name).getValue();

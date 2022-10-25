@@ -19,6 +19,7 @@
 package org.mvel2;
 
 import org.mvel2.ast.ASTNode;
+import org.mvel2.ast.Function;
 import org.mvel2.ast.LineLabel;
 import org.mvel2.compiler.CompiledExpression;
 import org.mvel2.debug.Debugger;
@@ -58,6 +59,15 @@ public class MVELRuntime {
     Integer operator;
 
     if (tk == null) return null;
+
+    ASTNode node = expression.getFirstNode();
+    while (node != null) {
+      if (node instanceof Function) {
+        node.getReducedValueAccelerated(ctx, ctx, variableFactory);
+      }
+      node = node.nextASTNode;
+    }
+
     try {
       do {
         if (tk.fields == -1) {

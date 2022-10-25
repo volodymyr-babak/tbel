@@ -37,6 +37,7 @@ public class ThisWithNode extends WithNode {
     if (thisValue == null) throw new CompileException("with-block against null pointer (this)", expr, start);
 
     for (ParmValuePair pvp : withExpressions) {
+      checkExecution(ctx);
       if (pvp.getSetExpression() != null) {
         executeSetExpression(pvp.getSetExpression(), thisValue, factory, pvp.getStatement().getValue(ctx, thisValue, factory));
       }

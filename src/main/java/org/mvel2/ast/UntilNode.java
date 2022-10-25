@@ -55,6 +55,7 @@ public class UntilNode extends BlockNode {
   public Object getReducedValueAccelerated(Object ctx, Object thisValue, VariableResolverFactory factory) {
     VariableResolverFactory ctxFactory = new MapVariableResolverFactory(new HashMap(0), factory);
     while (!(Boolean) condition.getValue(ctx, thisValue, factory)) {
+      checkExecution(ctx);
       compiledBlock.getValue(ctx, thisValue, ctxFactory);
     }
 
@@ -65,6 +66,7 @@ public class UntilNode extends BlockNode {
     VariableResolverFactory ctxFactory = new MapVariableResolverFactory(new HashMap(0), factory);
 
     while (!(Boolean) condition.getValue(ctx, thisValue, factory)) {
+      checkExecution(ctx);
       compiledBlock.getValue(ctx, thisValue, ctxFactory);
     }
     return null;

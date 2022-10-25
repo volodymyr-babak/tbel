@@ -2,7 +2,9 @@ package org.mvel2.tests.core;
 
 import org.mvel2.MVEL;
 import org.mvel2.ParserContext;
+import org.mvel2.compiler.CompiledExpression;
 import org.mvel2.compiler.ExpressionCompiler;
+import org.mvel2.tests.core.res.Base;
 import org.mvel2.tests.core.res.Foo;
 
 import java.io.Serializable;
@@ -42,14 +44,14 @@ public class InlineCollectionsTests extends AbstractTest {
     assertTrue(test("[]") instanceof List);
   }
 
-  public void testEmptyArray() {
-    assertTrue(((Object[]) test("{}")).length == 0);
+  public void testEmptyMap() {
+    assertTrue(((Map) test("{}")).size() == 0);
   }
 
-  public void testEmptyArray2() {
+  public void testEmptyMap2() {
     Object o = MVEL.eval("{     }");
 
-    assertTrue(((Object[]) test("{    }")).length == 0);
+    assertTrue(((Map) test("{    }")).size() == 0);
   }
 
   public void testArrayCreation() {
@@ -116,12 +118,6 @@ public class InlineCollectionsTests extends AbstractTest {
         " 'Person.something' : (new String('foo').toUpperCase())]");
 
     assertEquals("FOO", m.get("Person.something"));
-  }
-
-  public void testInlineCollectionNestedObjectCreation1() {
-    Map m = (Map) test("[new String('foo') : new String('bar')]");
-
-    assertEquals("bar", m.get("foo"));
   }
 
   public void testMVEL179() {
@@ -207,7 +203,7 @@ public class InlineCollectionsTests extends AbstractTest {
   @SuppressWarnings({"UnnecessaryBoxing"})
   public void testToList() {
     String text = "misc.toList(foo.bar.name, 'hello', 42, ['key1' : 'value1'," +
-        " c : [ foo.bar.age, 'car', 42 ]], [42, [c : 'value1']] )";
+        " c : [ foo.bar.age, 'car', 42 ]], [42, ['c' : 'value1']] )";
 
     List list = (List) test(text);
 
@@ -221,7 +217,7 @@ public class InlineCollectionsTests extends AbstractTest {
     assertEquals("value1",
         map.get("key1"));
 
-    List nestedList = (List) map.get("cat");
+    List nestedList = (List) map.get("c");
     assertEquals(14,
         nestedList.get(0));
     assertEquals("car",
@@ -234,7 +230,7 @@ public class InlineCollectionsTests extends AbstractTest {
         nestedList.get(0));
     map = (Map) nestedList.get(1);
     assertEquals("value1",
-        map.get("cat"));
+        map.get("c"));
   }
 
   @SuppressWarnings({"UnnecessaryBoxing"})
@@ -266,7 +262,7 @@ public class InlineCollectionsTests extends AbstractTest {
     assertEquals("value1",
         map.get("key1"));
 
-    List nestedList = (List) map.get("cat");
+    List nestedList = (List) map.get("c");
     assertEquals(14,
         nestedList.get(0));
     assertEquals("car",
@@ -279,7 +275,7 @@ public class InlineCollectionsTests extends AbstractTest {
         nestedList.get(0));
     map = (Map) nestedList.get(1);
     assertEquals("value1",
-        map.get("cat"));
+        map.get("c"));
   }
 
   public void testArrayAccessorAssign() {

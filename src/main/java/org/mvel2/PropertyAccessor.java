@@ -563,8 +563,8 @@ public class PropertyAccessor {
       if ("this".equals(property)) {
         return this.ctx;
       }
-      else if (LITERALS.containsKey(property)) {
-        return LITERALS.get(property);
+      else if (pCtx != null && pCtx.hasLiteral(property) || pCtx == null && LITERALS.containsKey(property)) {
+        return pCtx != null ? pCtx.getLiteral(property) : LITERALS.get(property);
       }
       else if (variableFactory != null && variableFactory.isResolveable(property)) {
         return variableFactory.getVariableResolver(property).getValue();

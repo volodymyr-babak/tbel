@@ -47,6 +47,7 @@ public class Stacklang extends BlockNode {
     stk.push(getReducedValue(stk, thisValue, factory));
     if (stk.isReduceable()) {
       while (true) {
+        checkExecution(ctx);
         stk.op();
         if (stk.isReduceable()) {
           stk.xswap();
@@ -64,6 +65,7 @@ public class Stacklang extends BlockNode {
     ExecutionStack stack = (ExecutionStack) ctx;
 
     for (int i1 = 0, instructionListSize = instructionList.size(); i1 < instructionListSize; i1++) {
+      checkExecution(ctx);
       Instruction instruction = instructionList.get(i1);
 
       System.out.println(stack.toString() + " >> " + instruction.opcode + ":" + instruction.expr);

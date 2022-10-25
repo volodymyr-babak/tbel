@@ -64,6 +64,7 @@ public class WithNode extends BlockNode implements NestedStatement {
     if (ctxObject == null) throw new CompileException("with-block against null pointer", expr, start);
 
     for (ParmValuePair pvp : withExpressions) {
+      checkExecution(ctx);
       pvp.eval(ctxObject, factory);
     }
 

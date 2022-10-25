@@ -925,8 +925,12 @@ public class AbstractParser implements Parser, Serializable {
             }
 
             case '=':
-              return createOperator(expr, st, (cursor += 2));
-
+              if (lookAhead(2) == '=') {
+                cursor += 3;
+              } else {
+                cursor += 2;
+              }
+              return createOperator(expr, st, cursor);
             case '-':
               if (lookAhead() == '-') {
                 cursor += 2;
@@ -1396,9 +1400,11 @@ public class AbstractParser implements Parser, Serializable {
         }
       }
 
-      if (LITERALS.containsKey(tmp = new String(expr, st, end - st))) {
+      tmp = new String(expr, st, end - st);
+      if (pCtx != null && pCtx.hasLiteral(tmp) || pCtx == null && LITERALS.containsKey(tmp)) {
         lastWasIdentifier = true;
-        return lastNode = new LiteralNode(LITERALS.get(tmp), pCtx);
+        Object literal = pCtx != null ? pCtx.getLiteral(tmp) : LITERALS.get(tmp);
+        return lastNode = new LiteralNode(literal, pCtx);
       }
       else if (OPERATORS.containsKey(tmp)) {
         lastWasIdentifier = false;
@@ -2335,6 +2341,7 @@ public class AbstractParser implements Parser, Serializable {
         operatorsTable.put("/", DIV);
         operatorsTable.put("%", MOD);
         operatorsTable.put("==", EQUAL);
+        operatorsTable.put("===", EQUAL);
         operatorsTable.put("!=", NEQUAL);
         operatorsTable.put(">", GTHAN);
         operatorsTable.put(">=", GETHAN);

@@ -19,6 +19,7 @@ package org.mvel2.optimizers.impl.asm;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -33,6 +34,7 @@ import java.util.Map;
 
 import org.mvel2.CompileException;
 import org.mvel2.DataConversion;
+import org.mvel2.ExecutionContext;
 import org.mvel2.MVEL;
 import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
@@ -846,7 +848,7 @@ public class ASMAccessorOptimizer extends AbstractOptimizer implements AccessorO
   private Accessor compileAccessor() {
     assert debug("<<INITIATE COMPILE>>");
 
-    Object curr = ctx;
+    Object curr = ctx instanceof ExecutionContext ? null : ctx;
 
     try {
       if (!MVEL.COMPILER_OPT_ALLOW_OVERRIDE_ALL_PROPHANDLING) {
@@ -1257,8 +1259,8 @@ public class ASMAccessorOptimizer extends AbstractOptimizer implements AccessorO
       wrapPrimitive(int.class);
       return getLength(ctx);
     }
-    else if (LITERALS.containsKey(property)) {
-      Object lit = LITERALS.get(property);
+    else if (pCtx != null && pCtx.hasLiteral(property) || pCtx == null && LITERALS.containsKey(property)) {
+      Object lit = pCtx != null ? pCtx.getLiteral(property) : LITERALS.get(property);
 
       if (lit instanceof Class) {
         ldcClassConstant((Class) lit);
@@ -1326,10 +1328,21 @@ public class ASMAccessorOptimizer extends AbstractOptimizer implements AccessorO
 
       if (ctx == null) {
         throw new PropertyAccessException("unresolvable property or identifier: " + property, expr, st, pCtx);
-      }
-      else {
-        throw new PropertyAccessException("could not access: " + property + "; in class: "
-            + ctx.getClass().getName(), expr, st, pCtx);
+      } else {
+        if (ctx instanceof Map) {
+          assert debug("CHECKCAST java/util/Map");
+          mv.visitTypeInsn(CHECKCAST, "java/util/Map");
+
+          assert debug("LDC: \"" + property + "\"");
+          mv.visitLdcInsn(property);
+
+          assert debug("INVOKEINTERFACE: get");
+          mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;");
+          return ((Map) ctx).get(property);
+        } else {
+          throw new PropertyAccessException("could not access: " + property + "; in class: "
+                  + ctx.getClass().getName(), expr, st, pCtx);
+        }
       }
     }
   }
@@ -1940,6 +1953,10 @@ private Object optimizeFieldMethodProperty(Object ctx, String property, Class<?>
       wrapPrimitive(returnType);
     }
 
+    if (ctx == null && currType == null) {
+      throw new PropertyAccessException("null pointer or function not found: " + name, this.expr, this.start, pCtx);
+    }
+
     /**
      * If the target object is an instance of java.lang.Class itself then do not
      * adjust the Class scope target.
@@ -1992,6 +2009,9 @@ private Object optimizeFieldMethodProperty(Object ctx, String property, Class<?>
          for (int i = varArgStart; i < subtokens.size(); i++) {
            sb.append(subtokens.get(i));
            if (i < subtokens.size()-1) sb.append(",");
+         }
+         if (varArgStart == subtokens.size()) {
+           sb.append("null");
          }
         varArgExpr = sb.append("}").toString();
       }
@@ -2935,8 +2955,21 @@ private Object optimizeFieldMethodProperty(Object ctx, String property, Class<?>
 
       for (Object item : ((Map) o).keySet()) {
         mv.visitTypeInsn(CHECKCAST, "java/util/Map");
-
-        if (_getAccessor(item, type) != VAL) {
+        Object key = item;
+        int res = -1;
+        if (key instanceof String && ((String) key).trim().length() > 0) {
+          Serializable cKey = subCompileExpression(((String) key).toCharArray(), pCtx);
+          if (cKey instanceof ExecutableAccessor) {
+            String literal = ((ExecutableAccessor)cKey).getNode().getName();
+            ExecutableLiteral executableLiteral = new ExecutableLiteral(literal);
+            writeLiteralOrSubexpression(executableLiteral);
+            res = VAL;
+          }
+        }
+        if (res == -1) {
+          res = _getAccessor(key, type);
+        }
+        if (res != VAL) {
           assert debug("POP");
           mv.visitInsn(POP);
         }

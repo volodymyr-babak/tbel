@@ -104,6 +104,8 @@ public class ParserContext implements Serializable {
   private boolean indexAllocation = false;
   protected boolean variablesEscape = false;
 
+  private Map<String, Object> literals;
+
   public ParserContext() {
     parserConfiguration = new ParserConfiguration();
   }
@@ -735,7 +737,7 @@ public class ParserContext implements Serializable {
       return false;
     }
 
-    if (AbstractParser.LITERALS.containsKey(var) || hasImport(var)) {
+    if (hasLiteral(var) || hasImport(var)) {
       return true;
     }
 
@@ -913,6 +915,22 @@ public class ParserContext implements Serializable {
   private void initIndexedVariables() {
     if (indexedInputs == null) indexedInputs = new ArrayList<String>();
     if (indexedLocals == null) indexedLocals = new ArrayList<String>();
+  }
+
+  private Map<String, Object> literals() {
+    return this.literals != null ? this.literals : AbstractParser.LITERALS;
+  }
+
+  public boolean hasLiteral(String property) {
+    return this.literals().containsKey(property);
+  }
+
+  public Object getLiteral(String property) {
+    return this.literals().get(property);
+  }
+
+  public void setLiterals(Map<String, Object> literals) {
+    this.literals = literals;
   }
 
   public ArrayList<String> getIndexedInputs() {

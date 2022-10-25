@@ -125,12 +125,17 @@ public class Function extends ASTNode implements Safe {
   }
 
   public Object getReducedValueAccelerated(Object ctx, Object thisValue, VariableResolverFactory factory) {
-    PrototypalFunctionInstance instance = new PrototypalFunctionInstance(this, new MapVariableResolverFactory());
+    PrototypalFunctionInstance instance;
     if (name != null) {
       if (!factory.isIndexedFactory() && factory.isResolveable(name))
-        throw new CompileException("duplicate function: " + name, expr, start);
-
-      factory.createVariable(name, instance);
+        return factory.getVariableResolver(name).getValue();
+        //throw new CompileException("duplicate function: " + name, expr, start);
+      else {
+        instance = new PrototypalFunctionInstance(this, new MapVariableResolverFactory());
+        factory.createVariable(name, instance);
+      }
+    } else {
+      instance = new PrototypalFunctionInstance(this, new MapVariableResolverFactory());
     }
     return instance;
   }

@@ -18,6 +18,7 @@
 package org.mvel2.optimizers.impl.refl;
 
 import org.mvel2.CompileException;
+import org.mvel2.ExecutionContext;
 import org.mvel2.MVEL;
 import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
@@ -353,7 +354,7 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
   }
 
   private Accessor compileGetChain() {
-    Object curr = ctx;
+    Object curr = ctx instanceof ExecutionContext ? null : ctx;
     cursor = start;
 
     try {
@@ -379,12 +380,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
           first = false;
           if (curr != null) returnType = curr.getClass();
           if (cursor < end) {
-            if (nullSafe) {
+           if (nullSafe) {
               int os = expr[cursor] == '.' ? 1 : 0;
               addAccessorNode(new NullSafe(expr, cursor + os, end - cursor - os, pCtx));
               if (curr == null) break;
             }
             if (curr == null) throw new NullPointerException();
+
           }
           staticAccess = false;
         }
@@ -640,8 +642,9 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
       addAccessorNode(new ArrayLength());
       return getLength(ctx);
     }
-    else if (LITERALS.containsKey(property)) {
-      addAccessorNode(new StaticReferenceAccessor(ctx = LITERALS.get(property)));
+    else if (pCtx != null && pCtx.hasLiteral(property) || pCtx == null && LITERALS.containsKey(property)) {
+      ctx = pCtx != null ? pCtx.getLiteral(property) : LITERALS.get(property);
+      addAccessorNode(new StaticReferenceAccessor(ctx));
       return ctx;
     }
     else {
@@ -702,8 +705,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
         throw new PropertyAccessException("unresolvable property or identifier: " + property, expr, start, pCtx);
       }
       else {
-        throw new PropertyAccessException("could not access: " + property + "; in class: "
-            + ctx.getClass().getName(), expr, start, pCtx);
+        if (ctx instanceof Map) {
+          addAccessorNode(new MapAccessor(property));
+          return ((Map) ctx).get(property);
+        } else {
+          throw new PropertyAccessException("could not access: " + property + "; in class: "
+                  + ctx.getClass().getName(), expr, start, pCtx);
+        }
       }
     }
   }

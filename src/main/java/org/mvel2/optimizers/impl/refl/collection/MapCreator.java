@@ -19,6 +19,8 @@
 package org.mvel2.optimizers.impl.refl.collection;
 
 import org.mvel2.compiler.Accessor;
+import org.mvel2.compiler.ExecutableAccessor;
+import org.mvel2.compiler.ExecutableStatement;
 import org.mvel2.integration.VariableResolverFactory;
 
 import java.util.HashMap;
@@ -33,12 +35,23 @@ public class MapCreator implements Accessor {
   private int size;
 
   public Object getValue(Object ctx, Object elCtx, VariableResolverFactory variableFactory) {
-    Map map = new HashMap(size * 2);
+    Map map = new HashMap<>(size * 2);
     for (int i = size - 1; i != -1; i--) {
       //noinspection unchecked
-      map.put(keys[i].getValue(ctx, elCtx, variableFactory), vals[i].getValue(ctx, elCtx, variableFactory));
+      map.put(getKey(i, ctx, elCtx, variableFactory), vals[i].getValue(ctx, elCtx, variableFactory));
     }
     return map;
+  }
+
+  private Object getKey(int index, Object ctx, Object elCtx, VariableResolverFactory variableFactory) {
+    Accessor keyAccessor = keys[index];
+     if (keyAccessor instanceof ExprValueAccessor) {
+      ExecutableStatement executableStatement = ((ExprValueAccessor) keyAccessor).stmt;
+      if (executableStatement instanceof ExecutableAccessor) {
+        return ((ExecutableAccessor) executableStatement).getNode().getName();
+      }
+    }
+    return keyAccessor.getValue(ctx, elCtx, variableFactory);
   }
 
   public MapCreator(Accessor[] keys, Accessor[] vals) {

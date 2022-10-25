@@ -62,6 +62,7 @@ public class DoNode extends BlockNode {
     VariableResolverFactory ctxFactory = new MapVariableResolverFactory(new HashMap<String, Object>(0), factory);
 
     do {
+      checkExecution(ctx);
       compiledBlock.getValue(ctx, thisValue, ctxFactory);
     }
     while ((Boolean) condition.getValue(ctx, thisValue, factory));
@@ -73,6 +74,7 @@ public class DoNode extends BlockNode {
     VariableResolverFactory ctxFactory = new MapVariableResolverFactory(new HashMap<String, Object>(0), factory);
 
     do {
+      checkExecution(ctx);
       compiledBlock.getValue(ctx, thisValue, ctxFactory);
     }
     while ((Boolean) condition.getValue(ctx, thisValue, factory));

@@ -19,6 +19,7 @@
 package org.mvel2.ast;
 
 import org.mvel2.CompileException;
+import org.mvel2.ExecutionContext;
 import org.mvel2.ParserConfiguration;
 import org.mvel2.ParserContext;
 import org.mvel2.compiler.Accessor;
@@ -430,6 +431,10 @@ public class ASTNode implements Cloneable, Serializable {
   protected ClassLoader getClassLoader() {
     return pCtx != null ? pCtx.getClassLoader() : currentThread().getContextClassLoader();
   }
+
+  protected void checkExecution(Object ctx) {
+    if (ctx instanceof ExecutionContext) {
+      ((ExecutionContext)ctx).checkExecution();
+    }
+  }
 }
-
-

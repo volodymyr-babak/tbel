@@ -86,6 +86,7 @@ public class ForEachNode extends BlockNode {
       case ARRAY:
         int len = Array.getLength(iterCond);
         for (int i = 0; i < len; i++) {
+          checkExecution(ctx);
           itemR.setValue(Array.get(iterCond, i));
           v = compiledBlock.getValue(ctx, thisValue, itemFactory);
           if (itemFactory.tiltFlag()) return v;
@@ -93,6 +94,7 @@ public class ForEachNode extends BlockNode {
         break;
       case CHARSEQUENCE:
         for (Object o : iterCond.toString().toCharArray()) {
+          checkExecution(ctx);
           itemR.setValue(o);
           v = compiledBlock.getValue(ctx, thisValue, itemFactory);
           if (itemFactory.tiltFlag()) return v;
@@ -101,6 +103,7 @@ public class ForEachNode extends BlockNode {
       case INTEGER:
         int max = (Integer) iterCond + 1;
         for (int i = 1; i != max; i++) {
+          checkExecution(ctx);
           itemR.setValue(i);
           v = compiledBlock.getValue(ctx, thisValue, itemFactory);
           if (itemFactory.tiltFlag()) return v;
@@ -109,6 +112,7 @@ public class ForEachNode extends BlockNode {
 
       case ITERABLE:
         for (Object o : (Iterable) iterCond) {
+          checkExecution(ctx);
           itemR.setValue(o);
           v = compiledBlock.getValue(ctx, thisValue, itemFactory);
           if (itemFactory.tiltFlag()) return v;
@@ -134,6 +138,7 @@ public class ForEachNode extends BlockNode {
     Object v;
     if (iterCond instanceof Iterable) {
       for (Object o : (Iterable) iterCond) {
+        checkExecution(ctx);
         itemR.setValue(o);
         v = compiledBlock.getValue(ctx, thisValue, itemFactory);
         if (itemFactory.tiltFlag()) return v;
@@ -142,6 +147,7 @@ public class ForEachNode extends BlockNode {
     else if (iterCond != null && iterCond.getClass().isArray()) {
       int len = Array.getLength(iterCond);
       for (int i = 0; i < len; i++) {
+        checkExecution(ctx);
         itemR.setValue(Array.get(iterCond, i));
         v = compiledBlock.getValue(ctx, thisValue, itemFactory);
         if (itemFactory.tiltFlag()) return v;
@@ -149,6 +155,7 @@ public class ForEachNode extends BlockNode {
     }
     else if (iterCond instanceof CharSequence) {
       for (Object o : iterCond.toString().toCharArray()) {
+        checkExecution(ctx);
         itemR.setValue(o);
         v = compiledBlock.getValue(ctx, thisValue, itemFactory);
         if (itemFactory.tiltFlag()) return v;
@@ -157,6 +164,7 @@ public class ForEachNode extends BlockNode {
     else if (iterCond instanceof Integer) {
       int max = (Integer) iterCond + 1;
       for (int i = 1; i != max; i++) {
+        checkExecution(ctx);
         itemR.setValue(i);
         v = compiledBlock.getValue(ctx, thisValue, itemFactory);
         if (itemFactory.tiltFlag()) return v;
