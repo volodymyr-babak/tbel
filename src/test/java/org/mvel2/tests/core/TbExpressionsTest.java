@@ -283,6 +283,15 @@ public class TbExpressionsTest extends TestCase {
         assertEquals(true, ((Map)res).get("b"));
     }
 
+    public void testJsonStringifyParse() throws Exception {
+        Object res = executeScript("m = {foo: 'bar', a: 1, b: true}; JSON.parse(JSON.stringify(m))");
+        assertTrue(res instanceof Map);
+        assertEquals(3, ((Map)res).size());
+        assertEquals("bar", ((Map)res).get("foo"));
+        assertEquals(1, ((Map)res).get("a"));
+        assertEquals(true, ((Map)res).get("b"));
+    }
+
     public void testMemoryOverflowJsonParse() throws Exception {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
