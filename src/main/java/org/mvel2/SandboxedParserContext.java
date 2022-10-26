@@ -16,6 +16,7 @@ public class SandboxedParserContext extends ParserContext {
         setLiterals(AbstractParser.LITERALS
                 .entrySet().stream().filter(entry -> !SandboxedClassLoader.forbiddenClassLiterals.contains(entry.getKey()))
                 .collect(HashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), HashMap::putAll));
+        this.addImport("JSON", TbJson.class);
     }
 
     public void addAllowedPackage(String packageName) {

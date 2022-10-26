@@ -263,6 +263,38 @@ public class TbExpressionsTest extends TestCase {
         assertEquals(System.currentTimeMillis() / 100, ((long) res) / 100);
     }
 
+    public void testJsonStringify() throws Exception {
+        Object res = executeScript("m = {foo: 'bar', a: 1, b: true}; JSON.stringify(m)");
+        assertEquals("{\"a\":1,\"b\":true,\"foo\":\"bar\"}", res);
+    }
+
+    public void testJsonParse() throws Exception {
+        Object res = executeScript("str = '{\"foo\": \"bar\", \"a\": 1, \"b\": true}'; JSON.parse(str)");
+        assertTrue(res instanceof Map);
+        assertEquals(3, ((Map)res).size());
+        assertEquals("bar", ((Map)res).get("foo"));
+        assertEquals(1, ((Map)res).get("a"));
+        assertEquals(true, ((Map)res).get("b"));
+        res = executeScript("str = '{\"foo\": \"bar\", \"a\": 1, \"b\": true}'; function parseStr(a) { return JSON.parse(a); }; m = parseStr(str); m");
+        assertTrue(res instanceof Map);
+        assertEquals(3, ((Map)res).size());
+        assertEquals("bar", ((Map)res).get("foo"));
+        assertEquals(1, ((Map)res).get("a"));
+        assertEquals(true, ((Map)res).get("b"));
+    }
+
+    public void testMemoryOverflowJsonParse() throws Exception {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("str = '{\"foo\": \"bar\", \"a\": 1, \"b\": true, \"foo2\": \"bar2\", \"a2\": 2, \"b2\": false}'; while(true) {JSON.parse(str)};",
+                    new HashMap(), new ExecutionContext(memoryLimit), 10000);
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext, long timeoutMs) throws Exception {
         final CountDownLatch countDown = new CountDownLatch(1);
         AtomicReference<Object> result = new AtomicReference<>();

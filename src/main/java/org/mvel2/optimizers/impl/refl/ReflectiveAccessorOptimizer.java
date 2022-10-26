@@ -23,6 +23,7 @@ import org.mvel2.MVEL;
 import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
 import org.mvel2.PropertyAccessException;
+import org.mvel2.TbJson;
 import org.mvel2.ast.FunctionInstance;
 import org.mvel2.ast.TypeDescriptor;
 import org.mvel2.compiler.Accessor;
@@ -1058,6 +1059,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
 
     Method m = null;
     Class[] parameterTypes = null;
+
+    if (TbJson.class.equals(cls) && "parse".equals(name) && this.ctx instanceof ExecutionContext) {
+      Class[] newArgTypes = new Class[]{argTypes[0], ExecutionContext.class};
+      Object[] newArgs = new Object[]{args[0], this.ctx};
+      argTypes = newArgTypes;
+      args = newArgs;
+    }
 
     /**
      * If we have not cached the method then we need to go ahead and try to resolve it.

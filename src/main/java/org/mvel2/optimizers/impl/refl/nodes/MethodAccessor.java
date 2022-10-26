@@ -18,7 +18,9 @@
  */
 package org.mvel2.optimizers.impl.refl.nodes;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.ScriptMemoryOverflowException;
+import org.mvel2.TbJson;
 import org.mvel2.compiler.ExecutableStatement;
 import org.mvel2.integration.VariableResolverFactory;
 
@@ -30,6 +32,7 @@ import static org.mvel2.util.ParseTools.getWidenedTarget;
 public class MethodAccessor extends InvokableAccessor {
 
   private Method method;
+  private boolean isJsonParse = false;
 
   public Object getValue(Object ctx, Object elCtx, VariableResolverFactory vars) {
     if (!coercionNeeded) {
@@ -141,7 +144,11 @@ public class MethodAccessor extends InvokableAccessor {
 
     Object[] vals = new Object[length];
     for (int i = 0; i < length - (m.isVarArgs() ? 1 : 0); i++) {
-      vals[i] = parms[i].getValue(ctx, vars);
+      if (isJsonParse && i == 1) {
+        vals[i] = ctx instanceof ExecutionContext ? ctx : null;
+      } else {
+        vals[i] = parms[i].getValue(ctx, vars);
+      }
     }
 
     if (m.isVarArgs()) {
@@ -168,6 +175,9 @@ public class MethodAccessor extends InvokableAccessor {
   public void setMethod(Method method) {
     this.method = method;
     this.length = (this.parameterTypes = this.method.getParameterTypes()).length;
+    if (TbJson.class.equals(method.getDeclaringClass()) && "parse".equals(method.getName())) {
+      this.isJsonParse = true;
+    }
   }
 
   public ExecutableStatement[] getParms() {
