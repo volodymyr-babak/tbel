@@ -5,11 +5,13 @@ import junit.framework.TestCase;
 import org.mvel2.CompileException;
 import org.mvel2.ExecutionContext;
 import org.mvel2.SandboxedParserContext;
+import org.mvel2.ScriptRuntimeException;
 import org.mvel2.optimizers.OptimizerFactory;
 import org.mvel2.util.MethodStub;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -26,14 +28,16 @@ public class TbExpressionsTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
+        OptimizerFactory.setDefaultOptimizer(OptimizerFactory.SAFE_REFLECTIVE);
         super.setUp();
         this.parserContext = new SandboxedParserContext();
     }
 
     public void testCreateSingleValueArray() {
         Object res = executeScript("m = {5}; m");
-        assertEquals(1, ((Object[])res).length);
-        assertEquals(5, ((Object[])res)[0]);
+        assertTrue(res instanceof List);
+        assertEquals(1, ((List)res).size());
+        assertEquals(5, ((List)res).get(0));
     }
 
     public void testCreateMap() {
@@ -102,37 +106,63 @@ public class TbExpressionsTest extends TestCase {
         assertEquals("Script execution is stopped!", exception.getMessage());
     }
 
+    public void testMemoryOverflow() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("t = 'abc'; while(true) { t  += t}; t", new HashMap(), new ExecutionContext(memoryLimit));
+            fail("Should throw ScriptRuntimeException");
+        } catch (ScriptRuntimeException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
     public void testForbiddenClassAccess() {
         try {
             executeScript("m = {5}; System.exit(-1); m");
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
-            Assert.assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
         }
 
         try {
             executeScript("m = {5}; exit(-1); m");
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
-            Assert.assertTrue(e.getMessage().contains("function not found: exit"));
+            assertTrue(e.getMessage().contains("function not found: exit"));
         }
 
         try {
             executeScript("m = {5}; java.lang.System.exit(-1); m");
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
-            Assert.assertTrue(e.getMessage().contains("unresolvable property or identifier: java"));
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: java"));
         }
 
         try {
             executeScript("m = {5}; Runtime.getRuntime().exec(\"echo hi\"); m");
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
-            Assert.assertTrue(e.getMessage().contains("unresolvable property or identifier: Runtime"));
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: Runtime"));
         }
 
-        Object res = executeScript("m = {5}; m.getClass().getClassLoader()");
-        assertNull(res);
+        try {
+            executeScript("m = {5}; m.getClass().getClassLoader()");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unable to resolve method: getClass()"));
+        }
+
+        try {
+            executeScript("m = {5}; m.class");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("could not access property: class"));
+        }
+
+        Object res = executeScript("m = {class: 5}; m.class");
+        assertNotNull(res);
+        assertEquals(5, res);
     }
 
     public void testUseClassImport() {
@@ -173,8 +203,12 @@ public class TbExpressionsTest extends TestCase {
     }
 
     private Object executeScript(String ex, Map vars) {
+        return executeScript(ex, vars, new ExecutionContext());
+    }
+
+    private Object executeScript(String ex, Map vars, ExecutionContext executionContext) {
         Serializable compiled = compileExpression(ex, parserContext);
-        this.currentExecutionContext = new ExecutionContext();
+        this.currentExecutionContext = executionContext;
         return executeExpression(compiled, this.currentExecutionContext, vars);
     }
 

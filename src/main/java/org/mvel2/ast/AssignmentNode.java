@@ -113,12 +113,12 @@ public class AssignmentNode extends ASTNode implements Assignment {
     else if (statement != null) {
       if (factory == null)
         throw new CompileException("cannot assign variables; no variable resolver factory available", expr, start);
-      return factory.createVariable(varName, statement.getValue(ctx, thisValue, factory)).getValue();
+      return factory.createVariable(varName, checkAssignVariable(ctx, varName, statement.getValue(ctx, thisValue, factory))).getValue();
     }
     else {
       if (factory == null)
         throw new CompileException("cannot assign variables; no variable resolver factory available", expr, start);
-      factory.createVariable(varName, null);
+      factory.createVariable(varName, checkAssignVariable(ctx, varName, null));
       return null;
     }
   }
@@ -132,7 +132,7 @@ public class AssignmentNode extends ASTNode implements Assignment {
       PropertyAccessor.set(factory.getVariableResolver(varName).getValue(), factory, index, ctx = runtime.parse(), pCtx);
     }
     else {
-      return factory.createVariable(varName, runtime.parse()).getValue();
+      return factory.createVariable(varName, checkAssignVariable(ctx, varName, runtime.parse())).getValue();
     }
 
     return ctx;

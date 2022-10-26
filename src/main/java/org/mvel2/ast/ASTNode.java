@@ -437,4 +437,13 @@ public class ASTNode implements Cloneable, Serializable {
       ((ExecutionContext)ctx).checkExecution();
     }
   }
+
+  protected Object checkAssignVariable(Object ctx, String varName, Object value) {
+    if (ctx instanceof ExecutionContext) {
+      return ((ExecutionContext)ctx).checkAssignVariable(varName, value);
+    } else {
+      return value;
+    }
+  }
+
 }

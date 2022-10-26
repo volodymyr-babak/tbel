@@ -2,6 +2,7 @@ package org.mvel2;
 
 import org.mvel2.compiler.AbstractParser;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 
@@ -20,4 +21,10 @@ public class SandboxedParserContext extends ParserContext {
     public void addAllowedPackage(String packageName) {
         this.sandboxedParserConfiguration.addAllowedPackage(packageName);
     }
+
+    @Override
+    public boolean isMethodAllowed(Method method) {
+        return !SandboxedClassLoader.forbiddenMethods.contains(method);
+    }
+
 }

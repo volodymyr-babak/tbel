@@ -18,9 +18,11 @@
  */
 package org.mvel2.optimizers.impl.refl.collection;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.compiler.Accessor;
 import org.mvel2.compiler.ExecutableAccessor;
 import org.mvel2.compiler.ExecutableStatement;
+import org.mvel2.execution.ExecutionHashMap;
 import org.mvel2.integration.VariableResolverFactory;
 
 import java.util.HashMap;
@@ -35,7 +37,12 @@ public class MapCreator implements Accessor {
   private int size;
 
   public Object getValue(Object ctx, Object elCtx, VariableResolverFactory variableFactory) {
-    Map map = new HashMap<>(size * 2);
+    Map map;
+    if (ctx instanceof ExecutionContext) {
+      map = new ExecutionHashMap(size * 2, (ExecutionContext) ctx);
+    } else {
+      map = new HashMap<>(size * 2);
+    }
     for (int i = size - 1; i != -1; i--) {
       //noinspection unchecked
       map.put(getKey(i, ctx, elCtx, variableFactory), vals[i].getValue(ctx, elCtx, variableFactory));

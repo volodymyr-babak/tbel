@@ -18,7 +18,9 @@
  */
 package org.mvel2.optimizers.impl.refl.collection;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.compiler.Accessor;
+import org.mvel2.execution.ExecutionArrayList;
 import org.mvel2.integration.VariableResolverFactory;
 
 import java.util.ArrayList;
@@ -36,7 +38,11 @@ public class ListCreator implements Accessor {
     for (int i = 0; i < getValues().length; i++) {
       template[i] = getValues()[i].getValue(ctx, elCtx, variableFactory);
     }
-    return new ArrayList<Object>(Arrays.asList(template));
+    if (ctx instanceof ExecutionContext) {
+      return new ExecutionArrayList<>(Arrays.asList(template), (ExecutionContext) ctx);
+    } else {
+      return new ArrayList<>(Arrays.asList(template));
+    }
   }
 
   public ListCreator(Accessor[] values) {

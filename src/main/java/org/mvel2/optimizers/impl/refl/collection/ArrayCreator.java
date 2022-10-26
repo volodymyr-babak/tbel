@@ -18,10 +18,13 @@
  */
 package org.mvel2.optimizers.impl.refl.collection;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.compiler.Accessor;
+import org.mvel2.execution.ExecutionArrayList;
 import org.mvel2.integration.VariableResolverFactory;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 
 import static java.lang.reflect.Array.newInstance;
 
@@ -33,6 +36,7 @@ public class ArrayCreator implements Accessor {
   private Class arrayType;
 
   public Object getValue(Object ctx, Object elCtx, VariableResolverFactory variableFactory) {
+    Object res;
     if (Object.class.equals(arrayType)) {
       Object[] newArray = new Object[template.length];
 
@@ -40,7 +44,7 @@ public class ArrayCreator implements Accessor {
         newArray[i] = template[i].getValue(ctx, elCtx, variableFactory);
       }
 
-      return newArray;
+      res = newArray;
     }
     else {
       Object newArray = newInstance(arrayType, template.length);
@@ -48,7 +52,12 @@ public class ArrayCreator implements Accessor {
         Array.set(newArray, i, template[i].getValue(ctx, elCtx, variableFactory));
       }
 
-      return newArray;
+      res = newArray;
+    }
+    if (ctx instanceof ExecutionContext) {
+      return new ExecutionArrayList<>(Arrays.asList((Object[])res), (ExecutionContext) ctx);
+    } else {
+      return res;
     }
   }
 

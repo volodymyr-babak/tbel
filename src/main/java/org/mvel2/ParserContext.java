@@ -1095,4 +1095,8 @@ public class ParserContext implements Serializable {
 
     return this;
   }
+
+  public boolean isMethodAllowed(Method method) {
+    return true;
+  }
 }
