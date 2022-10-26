@@ -34,6 +34,7 @@ import org.mvel2.integration.impl.ClassImportResolverFactory;
 import org.mvel2.integration.impl.ImmutableDefaultFactory;
 import org.mvel2.integration.impl.MapVariableResolverFactory;
 import org.mvel2.optimizers.impl.refl.nodes.GetterAccessor;
+import org.mvel2.util.ArgsRepackUtil;
 
 import static java.lang.Boolean.getBoolean;
 import static java.lang.String.valueOf;
@@ -940,6 +941,15 @@ public class MVEL {
     finally {
       if (factory != null) factory.externalize();
     }
+  }
+
+  public static Object executeTbExpression(final Object compiledExpression, final ExecutionContext ctx, Map vars) {
+    if(vars != null) {
+      Map newVars = new HashMap();
+      vars.forEach((k,v) -> newVars.put(k , ArgsRepackUtil.repack(ctx, v)));
+      vars = newVars;
+    }
+    return executeExpression(compiledExpression, ctx, vars);
   }
 
   public static Object executeExpression(final Object compiledExpression, final Object ctx, final VariableResolverFactory resolverFactory) {

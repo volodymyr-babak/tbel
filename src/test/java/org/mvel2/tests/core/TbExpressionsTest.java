@@ -5,6 +5,7 @@ import junit.framework.TestCase;
 import org.mvel2.CompileException;
 import org.mvel2.ExecutionContext;
 import org.mvel2.SandboxedParserContext;
+import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.ScriptRuntimeException;
 import org.mvel2.optimizers.OptimizerFactory;
 import org.mvel2.util.MethodStub;
@@ -36,8 +37,8 @@ public class TbExpressionsTest extends TestCase {
     public void testCreateSingleValueArray() {
         Object res = executeScript("m = {5}; m");
         assertTrue(res instanceof List);
-        assertEquals(1, ((List)res).size());
-        assertEquals(5, ((List)res).get(0));
+        assertEquals(1, ((List) res).size());
+        assertEquals(5, ((List) res).get(0));
     }
 
     public void testCreateMap() {
@@ -49,22 +50,22 @@ public class TbExpressionsTest extends TestCase {
     public void testCreateEmptyMapAndAssignField() {
         Object res = executeScript("m = {}; m.test = 1; m");
         assertTrue(res instanceof Map);
-        assertEquals(1, ((Map)res).size());
-        assertEquals(1, ((Map)res).get("test"));
+        assertEquals(1, ((Map) res).size());
+        assertEquals(1, ((Map) res).get("test"));
     }
 
     public void testNonExistentMapField() {
-        Object res = executeScript( "m = {}; t = m.test; t");
+        Object res = executeScript("m = {}; t = m.test; t");
         assertNull(res);
     }
 
     public void testEqualsOperator() {
         Object res = executeScript("m = 'abc'; m === 'abc'");
         assertTrue(res instanceof Boolean);
-        assertTrue((Boolean)res);
+        assertTrue((Boolean) res);
         res = executeScript("m = 'abc'; m = 1; m == 1");
         assertTrue(res instanceof Boolean);
-        assertTrue((Boolean)res);
+        assertTrue((Boolean) res);
     }
 
     public void testFunctionOrder() {
@@ -79,8 +80,8 @@ public class TbExpressionsTest extends TestCase {
     public void testComments() {
         Object res = executeScript("//var df = sdfsdf; \n // test comment: comment2 \n m = {\n// c: d, \n /* e: \n\nf, */ a: 2 }; m");
         assertTrue(res instanceof HashMap);
-        assertEquals(1, ((Map)res).size());
-        assertEquals(2, ((Map)res).get("a"));
+        assertEquals(1, ((Map) res).size());
+        assertEquals(2, ((Map) res).get("a"));
     }
 
     public void testStopExecution() throws Exception {
@@ -106,14 +107,78 @@ public class TbExpressionsTest extends TestCase {
         assertEquals("Script execution is stopped!", exception.getMessage());
     }
 
-    public void testMemoryOverflow() {
+    public void testMemoryOverflowVariable() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
             executeScript("t = 'abc'; while(true) { t  += t}; t", new HashMap(), new ExecutionContext(memoryLimit));
-            fail("Should throw ScriptRuntimeException");
-        } catch (ScriptRuntimeException e) {
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
             assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testMemoryOverflowInnerMap1() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("m = {}; m.put('a', {}); i =0; while(true) { m.get('a').put(i++, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random());}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testMemoryOverflowInnerMap2() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("m = {}; m.a = {}; i =0; while(true) { m.a[i++] = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random();}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testMemoryOverflowArray() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("m = []; i =0; while(true) { m.add('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random())}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testMemoryOverflowArrayInnerMap() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("m = [1]; m[0] = {}; i =0; while(true) { m[0].put(i++, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random())}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testMemoryOverflowAddAll() throws Exception {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("a = ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']; b = []; while(true) { b.addAll(a)}; m", new HashMap(), new ExecutionContext(memoryLimit), 10000);
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testForbidCustomObjects() throws Exception {
+        try {
+            executeScript("m = new java.util.HashMap(); m");
+            fail("Should throw ScriptRuntimeException");
+        } catch (ScriptRuntimeException e) {
+            assertTrue(e.getMessage().contains("Unsupported value type: class java.util.HashMap"));
         }
     }
 
@@ -195,7 +260,35 @@ public class TbExpressionsTest extends TestCase {
         this.parserContext.addImport("currentTimeMillis", new MethodStub(System.class.getMethod("currentTimeMillis")));
         res = executeScript("currentTimeMillis()");
         assertTrue(res instanceof Long);
-        assertEquals(System.currentTimeMillis() / 100, ((long)res) / 100);
+        assertEquals(System.currentTimeMillis() / 100, ((long) res) / 100);
+    }
+
+    private Object executeScript(String ex, Map vars, ExecutionContext executionContext, long timeoutMs) throws Exception {
+        final CountDownLatch countDown = new CountDownLatch(1);
+        AtomicReference<Object> result = new AtomicReference<>();
+        AtomicReference<Exception> exception = new AtomicReference<>();
+        Thread thread = new Thread(() -> {
+            try {
+                result.set(executeScript(ex, vars, executionContext));
+            } catch (Exception e) {
+                exception.set(e);
+            } finally {
+                countDown.countDown();
+            }
+        });
+        thread.start();
+        try {
+            countDown.await(timeoutMs, TimeUnit.MILLISECONDS);
+            executionContext.stop();
+            countDown.await(500, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        if (exception.get() != null) {
+            throw exception.get();
+        } else {
+            return result.get();
+        }
     }
 
     private Object executeScript(String ex) {
@@ -215,7 +308,7 @@ public class TbExpressionsTest extends TestCase {
     public static final class TestUtil {
         public static String getFoo(Map input) {
             if (input.containsKey("foo")) {
-                return input.get("foo") != null ?  input.get("foo").toString() : "null";
+                return input.get("foo") != null ? input.get("foo").toString() : "null";
             } else {
                 return "Not found!";
             }

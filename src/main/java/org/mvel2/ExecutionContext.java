@@ -1,5 +1,6 @@
 package org.mvel2;
 
+import org.mvel2.ast.PrototypalFunctionInstance;
 import org.mvel2.execution.ExecutionObject;
 
 import java.io.Serializable;
@@ -12,8 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ExecutionContext implements Serializable {
 
-    private Map<Object, ValueReference> valueReferenceMap = new IdentityHashMap<>();
-    private Map<String, Object> variablesMap = new HashMap<>();
+    private final Map<Object, ValueReference> valueReferenceMap = new IdentityHashMap<>();
+    private final Map<String, Object> variablesMap = new HashMap<>();
 
     private final long maxAllowedMemory;
 
@@ -77,8 +78,8 @@ public class ExecutionContext implements Serializable {
         ValueReference reference = valueReferenceMap.get(obj);
         if (reference != null) {
             reference.setSize(reference.getSize() - valSize);
-            memorySize -= valSize;
         }
+        memorySize -= valSize;
         return valSize;
     }
 
@@ -87,24 +88,20 @@ public class ExecutionContext implements Serializable {
         ValueReference reference = valueReferenceMap.get(obj);
         if (reference != null) {
             reference.setSize(reference.getSize() + valSize);
-            memorySize += valSize;
-            this.checkMemoryLimit();
         }
+        memorySize += valSize;
+        this.checkMemoryLimit();
         return valSize;
     }
 
     public void dumpVars() {
         System.out.println("VARS:");
-        variablesMap.entrySet().forEach(entry -> {
-            System.out.println(entry.getKey() + " = " + entry.getValue());
-        });
+        variablesMap.forEach((key, value) -> System.out.println(key + " = " + value));
     }
 
     public void dumpValueReferences() {
         System.out.println("VALUE REFERENCES:");
-        valueReferenceMap.entrySet().forEach(entry -> {
-            System.out.println(entry.getKey() + " = " + entry.getValue());
-        });
+        valueReferenceMap.forEach((key, value) -> System.out.println(key + " = " + value));
     }
 
     public long getMemorySize() {
@@ -113,7 +110,7 @@ public class ExecutionContext implements Serializable {
 
     private void checkMemoryLimit() {
         if (maxAllowedMemory > 0 && memorySize > maxAllowedMemory) {
-            throw new ScriptRuntimeException("Script memory overflow (" + memorySize + " > " + maxAllowedMemory + ")!");
+            throw new ScriptMemoryOverflowException("Script memory overflow (" + memorySize + " > " + maxAllowedMemory + ")!");
         }
     }
 
@@ -122,10 +119,10 @@ public class ExecutionContext implements Serializable {
             if (valueReferenceMap.containsKey(value)) {
                 return 4;
             } else {
-                return ((ExecutionObject)value).memorySize();
+                return ((ExecutionObject) value).memorySize();
             }
         } else if (value instanceof String) {
-            return ((String)value).getBytes().length;
+            return ((String) value).getBytes().length;
         } else if (value instanceof Integer) {
             return 4;
         } else if (value instanceof Long) {
@@ -136,8 +133,10 @@ public class ExecutionContext implements Serializable {
             return 8;
         } else if (value instanceof Boolean) {
             return 1;
+        } else if (value instanceof Byte) {
+            return 1;
         } else {
-            throw new ScriptRuntimeException("TODO: Unknown value type: " + value.getClass());
+            throw new ScriptRuntimeException("Unsupported value type: " + value.getClass());
         }
     }
 

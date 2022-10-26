@@ -18,6 +18,7 @@
  */
 package org.mvel2.optimizers.impl.refl.nodes;
 
+import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.compiler.AccessorNode;
 import org.mvel2.integration.VariableResolverFactory;
 import org.mvel2.util.PropertyTools;
@@ -48,8 +49,7 @@ public class FieldAccessor implements AccessorNode {
       else {
         return field.get(ctx);
       }
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       throw new RuntimeException("unable to access field: " + field.getName(), e);
     }
   }
@@ -58,8 +58,9 @@ public class FieldAccessor implements AccessorNode {
     if (nextNode != null) {
       try {
         return nextNode.setValue(field.get(ctx), elCtx, variableFactory, value == null && primitive ? PropertyTools.getPrimitiveInitialValue(field.getType()) : value);
-      }
-      catch (Exception e) {
+      } catch (ScriptMemoryOverflowException me){
+          throw me;
+      } catch (Exception e) {
         throw new RuntimeException("unable to access field", e);
       }
     }
@@ -85,7 +86,13 @@ public class FieldAccessor implements AccessorNode {
       }
       throw new RuntimeException("unable to bind property", e);
     }
+    catch (ScriptMemoryOverflowException me){
+          throw me;
+    }
     catch (Exception e) {
+      if (e.getCause() instanceof ScriptMemoryOverflowException) {
+          throw (ScriptMemoryOverflowException) e.getCause();
+      }
       throw new RuntimeException("unable to access field", e);
     }
   }

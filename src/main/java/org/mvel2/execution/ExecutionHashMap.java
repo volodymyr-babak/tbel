@@ -3,8 +3,9 @@ package org.mvel2.execution;
 import org.mvel2.ExecutionContext;
 
 import java.util.HashMap;
+import java.util.Map;
 
-public class ExecutionHashMap<K,V> extends HashMap<K,V> implements ExecutionObject {
+public class ExecutionHashMap<K, V> extends HashMap<K, V> implements ExecutionObject {
 
     private final ExecutionContext executionContext;
 
@@ -30,6 +31,38 @@ public class ExecutionHashMap<K,V> extends HashMap<K,V> implements ExecutionObje
     }
 
     @Override
+    public void putAll(Map<? extends K, ? extends V> m) {
+        super.putAll(m);
+        for (Entry val : m.entrySet()) {
+            this.memorySize += this.executionContext.onValAdd(this, val.getKey(), val.getValue());
+        }
+    }
+
+    @Override
+    public V putIfAbsent(K key, V value) {
+        if (super.containsKey(key)) {
+            this.memorySize += this.executionContext.onValAdd(this, key, value);
+        }
+        return super.putIfAbsent(key, value);
+    }
+
+    @Override
+    public boolean replace(K key, V oldValue, V newValue) {
+        boolean result = super.replace(key, oldValue, newValue);
+        if(result){
+            this.memorySize -= this.executionContext.onValRemove(this, key, oldValue);
+            this.memorySize += this.executionContext.onValAdd(this, key, newValue);
+        }
+        return result;
+    }
+
+    @Override
+    public V replace(K key, V value) {
+        this.memorySize += this.executionContext.onValAdd(this, key, value);
+        return super.replace(key, value);
+    }
+
+    @Override
     public V remove(Object key) {
         if (containsKey(key)) {
             V value = this.get(key);
@@ -51,6 +84,6 @@ public class ExecutionHashMap<K,V> extends HashMap<K,V> implements ExecutionObje
     @Override
     public String toString() {
         String res = super.toString();
-        return "(id="+id+") " + res;
+        return "(id=" + id + ") " + res;
     }
 }

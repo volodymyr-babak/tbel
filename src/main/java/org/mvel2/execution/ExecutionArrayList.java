@@ -13,14 +13,66 @@ public class ExecutionArrayList<E> extends ArrayList<E> implements ExecutionObje
 
     private long memorySize = 0;
 
+    public ExecutionArrayList(ExecutionContext executionContext) {
+        this.executionContext = executionContext;
+        this.id = executionContext.nextId();
+    }
+
     public ExecutionArrayList(Collection<? extends E> c, ExecutionContext executionContext) {
         super(c);
         this.executionContext = executionContext;
         this.id = executionContext.nextId();
-        for (int i=0;i<size();i++) {
+        for (int i = 0; i < size(); i++) {
             E val = get(i);
             this.memorySize += this.executionContext.onValAdd(this, i, val);
         }
+    }
+
+    public boolean push(E e) {
+        return this.add(e);
+    }
+
+    public E pop() {
+        int size = size();
+        if (size == 0) {
+            return null;
+        } else {
+            return this.remove(size - 1);
+        }
+    }
+
+    public E shift() {
+        return remove(0);
+    }
+
+    public void unshift(E e) {
+        add(0, e);
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        boolean res = super.addAll(c);
+        int i = c.size();
+        for (E val : c) {
+            this.memorySize += this.executionContext.onValAdd(this, i++, val);
+        }
+        return res;
+    }
+
+    @Override
+    public boolean addAll(int index, Collection<? extends E> c) {
+        boolean res = super.addAll(index, c);
+        int i = index;
+        for (E val : c) {
+            this.memorySize += this.executionContext.onValAdd(this, i++, val);
+        }
+        return res;
+    }
+
+    @Override
+    public void add(int index, E e) {
+        super.add(index, e);
+        this.memorySize += this.executionContext.onValAdd(this, index, e);
     }
 
     @Override
@@ -58,6 +110,6 @@ public class ExecutionArrayList<E> extends ArrayList<E> implements ExecutionObje
     @Override
     public String toString() {
         String res = super.toString();
-        return "(id="+id+") " + res;
+        return "(id=" + id + ") " + res;
     }
 }

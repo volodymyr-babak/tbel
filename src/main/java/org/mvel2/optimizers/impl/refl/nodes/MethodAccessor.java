@@ -18,6 +18,7 @@
  */
 package org.mvel2.optimizers.impl.refl.nodes;
 
+import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.compiler.ExecutableStatement;
 import org.mvel2.integration.VariableResolverFactory;
 
@@ -41,17 +42,21 @@ public class MethodAccessor extends InvokableAccessor {
         }
       }
       catch (IllegalArgumentException e) {
-        if (ctx != null && method.getDeclaringClass() != ctx.getClass()) {
-          Method o = getBestCandidate(parameterTypes, method.getName(), ctx.getClass(), ctx.getClass().getMethods(), true);
-          if (o != null) {
-            return executeOverrideTarget(getWidenedTarget(o), ctx, elCtx, vars);
+          if (ctx != null && method.getDeclaringClass() != ctx.getClass()) {
+              Method o = getBestCandidate(parameterTypes, method.getName(), ctx.getClass(), ctx.getClass().getMethods(), true);
+              if (o != null) {
+                  return executeOverrideTarget(getWidenedTarget(o), ctx, elCtx, vars);
+              }
           }
-        }
 
-        coercionNeeded = true;
-        return getValue(ctx, elCtx, vars);
-      }
-      catch (Exception e) {
+          coercionNeeded = true;
+          return getValue(ctx, elCtx, vars);
+      } catch (ScriptMemoryOverflowException me){
+          throw me;
+      } catch (Exception e) {
+        if (e.getCause() instanceof ScriptMemoryOverflowException) {
+          throw (ScriptMemoryOverflowException) e.getCause();
+        }
         throw new RuntimeException("cannot invoke method: " + method.getName(), e);
       }
 
@@ -75,8 +80,12 @@ public class MethodAccessor extends InvokableAccessor {
         else {
           throw e;
         }
-      }
-      catch (Exception e) {
+      } catch (ScriptMemoryOverflowException me){
+          throw me;
+      } catch (Exception e) {
+        if (e.getCause() instanceof ScriptMemoryOverflowException) {
+          throw (ScriptMemoryOverflowException) e.getCause();
+        }
         throw new RuntimeException("cannot invoke method: " + method.getName(), e);
       }
     }
@@ -84,7 +93,7 @@ public class MethodAccessor extends InvokableAccessor {
 
   private Object executeOverrideTarget(Method o, Object ctx, Object elCtx, VariableResolverFactory vars) {
     // this local field is required to make sure exception block works with the same coercionNeeded value
-    // and it is not changed by another thread while setter is invoked 
+    // and it is not changed by another thread while setter is invoked
     boolean attemptedCoercion = coercionNeeded;
     if (!coercionNeeded) {
       try {
