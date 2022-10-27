@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.mvel2.MVEL.compileExpression;
-import static org.mvel2.MVEL.executeExpression;
+import static org.mvel2.MVEL.executeTbExpression;
 
 public class TbExpressionsTest extends TestCase {
 
@@ -340,7 +340,7 @@ public class TbExpressionsTest extends TestCase {
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext) {
         Serializable compiled = compileExpression(ex, parserContext);
         this.currentExecutionContext = executionContext;
-        return executeExpression(compiled, this.currentExecutionContext, vars);
+        return executeTbExpression(compiled, this.currentExecutionContext, vars);
     }
 
     public static final class TestUtil {

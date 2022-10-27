@@ -949,7 +949,7 @@ public class MVEL {
       vars.forEach((k,v) -> newVars.put(k , ArgsRepackUtil.repack(ctx, v)));
       vars = newVars;
     }
-    return executeExpression(compiledExpression, ctx, vars);
+    return ArgsRepackUtil.unpack(executeExpression(compiledExpression, ctx, vars));
   }
 
   public static Object executeExpression(final Object compiledExpression, final Object ctx, final VariableResolverFactory resolverFactory) {
