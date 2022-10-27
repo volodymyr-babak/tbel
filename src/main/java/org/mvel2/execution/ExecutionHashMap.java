@@ -68,7 +68,7 @@ public class ExecutionHashMap<K, V> extends HashMap<K, V> implements ExecutionOb
             V value = this.get(key);
             this.memorySize -= this.executionContext.onValRemove(this, key, value);
         }
-        return this.remove(key);
+        return super.remove(key);
     }
 
     @Override
