@@ -23,7 +23,6 @@ import org.mvel2.MVEL;
 import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
 import org.mvel2.PropertyAccessException;
-import org.mvel2.TbJson;
 import org.mvel2.ast.FunctionInstance;
 import org.mvel2.ast.TypeDescriptor;
 import org.mvel2.compiler.Accessor;
@@ -100,10 +99,34 @@ import static org.mvel2.DataConversion.canConvert;
 import static org.mvel2.DataConversion.convert;
 import static org.mvel2.MVEL.eval;
 import static org.mvel2.ast.TypeDescriptor.getClassReference;
-import static org.mvel2.integration.GlobalListenerFactory.*;
-import static org.mvel2.integration.PropertyHandlerFactory.*;
+import static org.mvel2.integration.GlobalListenerFactory.hasSetListeners;
+import static org.mvel2.integration.GlobalListenerFactory.notifyGetListeners;
+import static org.mvel2.integration.GlobalListenerFactory.notifySetListeners;
+import static org.mvel2.integration.PropertyHandlerFactory.getNullMethodHandler;
+import static org.mvel2.integration.PropertyHandlerFactory.getNullPropertyHandler;
+import static org.mvel2.integration.PropertyHandlerFactory.getPropertyHandler;
+import static org.mvel2.integration.PropertyHandlerFactory.hasNullMethodHandler;
+import static org.mvel2.integration.PropertyHandlerFactory.hasNullPropertyHandler;
+import static org.mvel2.integration.PropertyHandlerFactory.hasPropertyHandler;
 import static org.mvel2.util.CompilerTools.expectType;
-import static org.mvel2.util.ParseTools.*;
+import static org.mvel2.util.ParseTools.EMPTY_OBJ_ARR;
+import static org.mvel2.util.ParseTools.balancedCapture;
+import static org.mvel2.util.ParseTools.balancedCaptureWithLineAccounting;
+import static org.mvel2.util.ParseTools.captureContructorAndResidual;
+import static org.mvel2.util.ParseTools.determineActualTargetMethod;
+import static org.mvel2.util.ParseTools.findClass;
+import static org.mvel2.util.ParseTools.getBaseComponentType;
+import static org.mvel2.util.ParseTools.getBestCandidate;
+import static org.mvel2.util.ParseTools.getBestConstructorCandidate;
+import static org.mvel2.util.ParseTools.getSubComponentType;
+import static org.mvel2.util.ParseTools.getWidenedTarget;
+import static org.mvel2.util.ParseTools.parseMethodOrConstructor;
+import static org.mvel2.util.ParseTools.parseParameterList;
+import static org.mvel2.util.ParseTools.removeExecutionContextParam;
+import static org.mvel2.util.ParseTools.repeatChar;
+import static org.mvel2.util.ParseTools.subCompileExpression;
+import static org.mvel2.util.ParseTools.subset;
+import static org.mvel2.util.ParseTools.updateArgsWithExecutionContextIfNeeded;
 import static org.mvel2.util.PropertyTools.getFieldOrAccessor;
 import static org.mvel2.util.PropertyTools.getFieldOrWriteAccessor;
 import static org.mvel2.util.ReflectionUtil.toNonPrimitiveType;
@@ -1060,13 +1083,6 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
     Method m = null;
     Class[] parameterTypes = null;
 
-    if (TbJson.class.equals(cls) && "parse".equals(name) && this.ctx instanceof ExecutionContext) {
-      Class[] newArgTypes = new Class[]{argTypes[0], ExecutionContext.class};
-      Object[] newArgs = new Object[]{args[0], this.ctx};
-      argTypes = newArgTypes;
-      args = newArgs;
-    }
-
     /**
      * If we have not cached the method then we need to go ahead and try to resolve it.
      */
@@ -1113,16 +1129,18 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
           + name + "(" + errorBuild.toString() + ") [arglength=" + args.length + "]", this.expr, this.st, pCtx);
     }
 
+    Class[] argParameterTypes = removeExecutionContextParam(parameterTypes);
+
     if (es != null) {
       ExecutableStatement cExpr;
       for (int i = 0; i < es.length; i++) {
         cExpr = es[i];
         if (cExpr.getKnownIngressType() == null) {
-          cExpr.setKnownIngressType(paramTypeVarArgsSafe(parameterTypes, i, m.isVarArgs()));
+          cExpr.setKnownIngressType(paramTypeVarArgsSafe(argParameterTypes, i, m.isVarArgs()));
           cExpr.computeTypeConversionRule();
         }
         if (!cExpr.isConvertableIngressEgress()) {
-          args[i] = convert(args[i], paramTypeVarArgsSafe(parameterTypes, i, m.isVarArgs()));
+          args[i] = convert(args[i], paramTypeVarArgsSafe(argParameterTypes, i, m.isVarArgs()));
         }
       }
     }
@@ -1131,10 +1149,11 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
        * Coerce any types if required.
        */
       for (int i = 0; i < args.length; i++)
-        args[i] = convert(args[i], paramTypeVarArgsSafe(parameterTypes, i, m.isVarArgs()));
+        args[i] = convert(args[i], paramTypeVarArgsSafe(argParameterTypes, i, m.isVarArgs()));
     }
 
     Method method = getWidenedTarget(cls, m);
+    args = updateArgsWithExecutionContextIfNeeded(parameterTypes, args, this.ctx);
     Object o = ctx != null ? method.invoke(ctx, normalizeArgsForVarArgs(parameterTypes, args, m.isVarArgs())) : null;
 
     if (hasNullMethodHandler()) {

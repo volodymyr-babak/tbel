@@ -7,10 +7,13 @@ import org.mvel2.ExecutionContext;
 import org.mvel2.SandboxedParserContext;
 import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.ScriptRuntimeException;
+import org.mvel2.execution.ExecutionArrayList;
+import org.mvel2.execution.ExecutionHashMap;
 import org.mvel2.optimizers.OptimizerFactory;
 import org.mvel2.util.MethodStub;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.mvel2.MVEL.compileExpression;
 import static org.mvel2.MVEL.executeExpression;
 
@@ -242,6 +246,19 @@ public class TbExpressionsTest extends TestCase {
         assertEquals("foo-bar", res);
         res = executeScript("MyTestUtil.getFoo({})");
         assertEquals("Not found!", res);
+        res = executeScript("MyTestUtil.methodWithExecContext('key1', 'val1')");
+        assertTrue(res instanceof Map);
+        assertEquals("val1", ((Map)res).get("key1"));
+        res = executeScript("MyTestUtil.methodWithExecContext2('key2', 'val2')");
+        assertTrue(res instanceof Map);
+        assertEquals("val2", ((Map)res).get("key2"));
+        res = executeScript("MyTestUtil.methodWithExecContext3('key3', 'val3')");
+        assertTrue(res instanceof Map);
+        assertEquals("val3", ((Map)res).get("key3"));
+        res = executeScript("MyTestUtil.methodWithExecContextVarArgs('a1', 'a2', 'a3', 'a4', 'a5')");
+        assertTrue(res instanceof List);
+        assertEquals(5, ((List)res).size());
+        assertArrayEquals(new String[]{"a1", "a2", "a3", "a4", "a5"}, ((List)res).toArray(new String[5]));
     }
 
     public void testUseStaticMethodImport() throws Exception {
@@ -261,47 +278,27 @@ public class TbExpressionsTest extends TestCase {
         res = executeScript("currentTimeMillis()");
         assertTrue(res instanceof Long);
         assertEquals(System.currentTimeMillis() / 100, ((long) res) / 100);
-    }
-
-    public void testJsonStringify() throws Exception {
-        Object res = executeScript("m = {foo: 'bar', a: 1, b: true}; JSON.stringify(m)");
-        assertEquals("{\"a\":1,\"b\":true,\"foo\":\"bar\"}", res);
-    }
-
-    public void testJsonParse() throws Exception {
-        Object res = executeScript("str = '{\"foo\": \"bar\", \"a\": 1, \"b\": true}'; JSON.parse(str)");
+        this.parserContext.addImport("methodWithExecContext", new MethodStub(TestUtil.class.getMethod("methodWithExecContext",
+                String.class, Object.class, ExecutionContext.class)));
+        res = executeScript("methodWithExecContext('key1', 'val1')");
         assertTrue(res instanceof Map);
-        assertEquals(3, ((Map)res).size());
-        assertEquals("bar", ((Map)res).get("foo"));
-        assertEquals(1, ((Map)res).get("a"));
-        assertEquals(true, ((Map)res).get("b"));
-        res = executeScript("str = '{\"foo\": \"bar\", \"a\": 1, \"b\": true}'; function parseStr(a) { return JSON.parse(a); }; m = parseStr(str); m");
+        assertEquals("val1", ((Map)res).get("key1"));
+        this.parserContext.addImport("methodWithExecContext2", new MethodStub(TestUtil.class.getMethod("methodWithExecContext2",
+                String.class, ExecutionContext.class, Object.class)));
+        res = executeScript("methodWithExecContext2('key2', 'val2')");
         assertTrue(res instanceof Map);
-        assertEquals(3, ((Map)res).size());
-        assertEquals("bar", ((Map)res).get("foo"));
-        assertEquals(1, ((Map)res).get("a"));
-        assertEquals(true, ((Map)res).get("b"));
-    }
-
-    public void testJsonStringifyParse() throws Exception {
-        Object res = executeScript("m = {foo: 'bar', a: 1, b: true}; JSON.parse(JSON.stringify(m))");
+        assertEquals("val2", ((Map)res).get("key2"));
+        this.parserContext.addImport("methodWithExecContext3", new MethodStub(TestUtil.class.getMethod("methodWithExecContext3",
+                ExecutionContext.class, String.class, Object.class)));
+        res = executeScript("methodWithExecContext3('key3', 'val3')");
         assertTrue(res instanceof Map);
-        assertEquals(3, ((Map)res).size());
-        assertEquals("bar", ((Map)res).get("foo"));
-        assertEquals(1, ((Map)res).get("a"));
-        assertEquals(true, ((Map)res).get("b"));
-    }
-
-    public void testMemoryOverflowJsonParse() throws Exception {
-        long memoryLimit = 5 * 1024 * 1024; // 5MB
-        try {
-            executeScript("str = '{\"foo\": \"bar\", \"a\": 1, \"b\": true, \"foo2\": \"bar2\", \"a2\": 2, \"b2\": false}'; while(true) {JSON.parse(str)};",
-                    new HashMap(), new ExecutionContext(memoryLimit), 10000);
-            fail("Should throw ScriptMemoryOverflowException");
-        } catch (ScriptMemoryOverflowException e) {
-            assertTrue(e.getMessage().contains("Script memory overflow"));
-            assertTrue(e.getMessage().contains("" + memoryLimit));
-        }
+        assertEquals("val3", ((Map)res).get("key3"));
+        this.parserContext.addImport("methodWithExecContextVarArgs", new MethodStub(TestUtil.class.getMethod("methodWithExecContextVarArgs",
+                ExecutionContext.class, Object[].class)));
+        res = executeScript("methodWithExecContextVarArgs('a1', 'a2', 'a3', 'a4', 'a5')");
+        assertTrue(res instanceof List);
+        assertEquals(5, ((List)res).size());
+        assertArrayEquals(new String[]{"a1", "a2", "a3", "a4", "a5"}, ((List)res).toArray(new String[5]));
     }
 
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext, long timeoutMs) throws Exception {
@@ -353,6 +350,29 @@ public class TbExpressionsTest extends TestCase {
             } else {
                 return "Not found!";
             }
+        }
+
+        public static Map methodWithExecContext(String key, Object val, ExecutionContext ctx) {
+            Map map = new ExecutionHashMap(1, ctx);
+            map.put(key, val);
+            return map;
+        }
+
+        public static Map methodWithExecContext2(String key, ExecutionContext ctx, Object val) {
+            Map map = new ExecutionHashMap(1, ctx);
+            map.put(key, val);
+            return map;
+        }
+
+        public static Map methodWithExecContext3(ExecutionContext ctx, String key, Object val) {
+            Map map = new ExecutionHashMap(1, ctx);
+            map.put(key, val);
+            return map;
+        }
+
+        public static List methodWithExecContextVarArgs(ExecutionContext ctx, Object... vals) {
+            List list = new ExecutionArrayList(Arrays.asList(vals), ctx);
+            return list;
         }
     }
 }

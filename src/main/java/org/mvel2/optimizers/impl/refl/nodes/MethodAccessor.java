@@ -20,11 +20,11 @@ package org.mvel2.optimizers.impl.refl.nodes;
 
 import org.mvel2.ExecutionContext;
 import org.mvel2.ScriptMemoryOverflowException;
-import org.mvel2.TbJson;
 import org.mvel2.compiler.ExecutableStatement;
 import org.mvel2.integration.VariableResolverFactory;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import static org.mvel2.util.ParseTools.getBestCandidate;
 import static org.mvel2.util.ParseTools.getWidenedTarget;
@@ -32,7 +32,7 @@ import static org.mvel2.util.ParseTools.getWidenedTarget;
 public class MethodAccessor extends InvokableAccessor {
 
   private Method method;
-  private boolean isJsonParse = false;
+  private int executionContextParamIndex = -1;
 
   public Object getValue(Object ctx, Object elCtx, VariableResolverFactory vars) {
     if (!coercionNeeded) {
@@ -143,11 +143,12 @@ public class MethodAccessor extends InvokableAccessor {
     if (length == 0) return GetterAccessor.EMPTY;
 
     Object[] vals = new Object[length];
+    int paramIndex = 0;
     for (int i = 0; i < length - (m.isVarArgs() ? 1 : 0); i++) {
-      if (isJsonParse && i == 1) {
+      if (i == this.executionContextParamIndex) {
         vals[i] = ctx instanceof ExecutionContext ? ctx : null;
       } else {
-        vals[i] = parms[i].getValue(ctx, vars);
+        vals[i] = parms[paramIndex++].getValue(ctx, vars);
       }
     }
 
@@ -175,9 +176,7 @@ public class MethodAccessor extends InvokableAccessor {
   public void setMethod(Method method) {
     this.method = method;
     this.length = (this.parameterTypes = this.method.getParameterTypes()).length;
-    if (TbJson.class.equals(method.getDeclaringClass()) && "parse".equals(method.getName())) {
-      this.isJsonParse = true;
-    }
+    this.executionContextParamIndex = Arrays.asList(this.parameterTypes).indexOf(ExecutionContext.class);
   }
 
   public ExecutableStatement[] getParms() {

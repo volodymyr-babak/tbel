@@ -36,6 +36,7 @@ import java.math.MathContext;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ import java.util.WeakHashMap;
 
 import org.mvel2.CompileException;
 import org.mvel2.DataTypes;
+import org.mvel2.ExecutionContext;
 import org.mvel2.MVEL;
 import org.mvel2.Operator;
 import org.mvel2.OptimizationFailure;
@@ -246,7 +248,7 @@ public class ParseTools {
         if (classTarget && !Modifier.isStatic(meth.getModifiers())) continue;
 
         if (method.equals(meth.getName())) {
-          parmTypes = meth.getParameterTypes();
+          parmTypes = removeExecutionContextParam(meth.getParameterTypes());
           if (parmTypes.length == 0 && arguments.length == 0) {
             if (bestCandidate == null || isMoreSpecialized(meth, bestCandidate) ) {
               bestCandidate = meth;
@@ -299,6 +301,29 @@ public class ParseTools {
     while (true);
 
     return bestCandidate;
+  }
+
+  public static Class<?>[] removeExecutionContextParam(Class<?>[] paramsTypes) {
+    if (paramsTypes != null) {
+      List<Class<?>> paramTypesList = Arrays.asList(paramsTypes);
+      int executionContextIndex = paramTypesList.indexOf(ExecutionContext.class);
+      if (executionContextIndex > -1) {
+        List<Class<?>> newParamTypesList = new ArrayList<>(paramTypesList);
+        newParamTypesList.remove(executionContextIndex);
+        paramsTypes = newParamTypesList.toArray(new Class<?>[paramsTypes.length-1]);
+      }
+    }
+    return paramsTypes;
+  }
+
+  public static Object[] updateArgsWithExecutionContextIfNeeded(Class<?>[] paramsTypes, Object[] args, Object ctx) {
+    int executionContextIndex = Arrays.asList(paramsTypes).indexOf(ExecutionContext.class);
+    if (executionContextIndex > -1) {
+      List<Object> newArgsList = new ArrayList<>(Arrays.asList(args));
+      newArgsList.add(executionContextIndex, ctx instanceof ExecutionContext ? ctx : null);
+      args = newArgsList.toArray();
+    }
+    return args;
   }
 
   private static boolean isArgsNumberNotCompatible( Class[] arguments, Class<?>[] parmTypes, boolean isVarArgs ) {
