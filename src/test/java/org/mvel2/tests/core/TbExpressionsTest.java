@@ -4,6 +4,7 @@ import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.mvel2.CompileException;
 import org.mvel2.ExecutionContext;
+import org.mvel2.SandboxedParserConfiguration;
 import org.mvel2.SandboxedParserContext;
 import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.ScriptRuntimeException;
@@ -27,7 +28,7 @@ import static org.mvel2.MVEL.executeTbExpression;
 
 public class TbExpressionsTest extends TestCase {
 
-    private SandboxedParserContext parserContext;
+    private SandboxedParserConfiguration parserConfig;
 
     private ExecutionContext currentExecutionContext;
 
@@ -35,7 +36,7 @@ public class TbExpressionsTest extends TestCase {
     protected void setUp() throws Exception {
         OptimizerFactory.setDefaultOptimizer(OptimizerFactory.SAFE_REFLECTIVE);
         super.setUp();
-        this.parserContext = new SandboxedParserContext();
+        this.parserConfig = new SandboxedParserConfiguration();
     }
 
     public void testCreateSingleValueArray() {
@@ -241,7 +242,7 @@ public class TbExpressionsTest extends TestCase {
         } catch (CompileException e) {
             Assert.assertTrue(e.getMessage().contains("unresolvable property or identifier: MyTestUtil"));
         }
-        this.parserContext.addImport("MyTestUtil", TestUtil.class);
+        this.parserConfig.addImport("MyTestUtil", TestUtil.class);
         Object res = executeScript("MyTestUtil.getFoo({foo: 'foo-bar'})");
         assertEquals("foo-bar", res);
         res = executeScript("MyTestUtil.getFoo({})");
@@ -262,7 +263,7 @@ public class TbExpressionsTest extends TestCase {
     }
 
     public void testUseStaticMethodImport() throws Exception {
-        this.parserContext.addImport("getFoo", new MethodStub(TestUtil.class.getMethod("getFoo",
+        this.parserConfig.addImport("getFoo", new MethodStub(TestUtil.class.getMethod("getFoo",
                 Map.class)));
         Object res = executeScript("getFoo({foo: 'foo-bar'})");
         assertEquals("foo-bar", res);
@@ -274,26 +275,26 @@ public class TbExpressionsTest extends TestCase {
         } catch (CompileException e) {
             Assert.assertTrue(e.getMessage().contains("function not found: currentTimeMillis"));
         }
-        this.parserContext.addImport("currentTimeMillis", new MethodStub(System.class.getMethod("currentTimeMillis")));
+        this.parserConfig.addImport("currentTimeMillis", new MethodStub(System.class.getMethod("currentTimeMillis")));
         res = executeScript("currentTimeMillis()");
         assertTrue(res instanceof Long);
         assertEquals(System.currentTimeMillis() / 100, ((long) res) / 100);
-        this.parserContext.addImport("methodWithExecContext", new MethodStub(TestUtil.class.getMethod("methodWithExecContext",
+        this.parserConfig.addImport("methodWithExecContext", new MethodStub(TestUtil.class.getMethod("methodWithExecContext",
                 String.class, Object.class, ExecutionContext.class)));
         res = executeScript("methodWithExecContext('key1', 'val1')");
         assertTrue(res instanceof Map);
         assertEquals("val1", ((Map)res).get("key1"));
-        this.parserContext.addImport("methodWithExecContext2", new MethodStub(TestUtil.class.getMethod("methodWithExecContext2",
+        this.parserConfig.addImport("methodWithExecContext2", new MethodStub(TestUtil.class.getMethod("methodWithExecContext2",
                 String.class, ExecutionContext.class, Object.class)));
         res = executeScript("methodWithExecContext2('key2', 'val2')");
         assertTrue(res instanceof Map);
         assertEquals("val2", ((Map)res).get("key2"));
-        this.parserContext.addImport("methodWithExecContext3", new MethodStub(TestUtil.class.getMethod("methodWithExecContext3",
+        this.parserConfig.addImport("methodWithExecContext3", new MethodStub(TestUtil.class.getMethod("methodWithExecContext3",
                 ExecutionContext.class, String.class, Object.class)));
         res = executeScript("methodWithExecContext3('key3', 'val3')");
         assertTrue(res instanceof Map);
         assertEquals("val3", ((Map)res).get("key3"));
-        this.parserContext.addImport("methodWithExecContextVarArgs", new MethodStub(TestUtil.class.getMethod("methodWithExecContextVarArgs",
+        this.parserConfig.addImport("methodWithExecContextVarArgs", new MethodStub(TestUtil.class.getMethod("methodWithExecContextVarArgs",
                 ExecutionContext.class, Object[].class)));
         res = executeScript("methodWithExecContextVarArgs('a1', 'a2', 'a3', 'a4', 'a5')");
         assertTrue(res instanceof List);
@@ -338,7 +339,7 @@ public class TbExpressionsTest extends TestCase {
     }
 
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext) {
-        Serializable compiled = compileExpression(ex, parserContext);
+        Serializable compiled = compileExpression(ex, new SandboxedParserContext(this.parserConfig));
         this.currentExecutionContext = executionContext;
         return executeTbExpression(compiled, this.currentExecutionContext, vars);
     }

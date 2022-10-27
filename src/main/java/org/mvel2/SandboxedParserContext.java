@@ -1,24 +1,27 @@
 package org.mvel2;
 
-import org.mvel2.compiler.AbstractParser;
-
 import java.lang.reflect.Method;
-import java.util.HashMap;
+import java.util.Map;
 
 public class SandboxedParserContext extends ParserContext {
 
-    private SandboxedParserConfiguration sandboxedParserConfiguration;
-
-    public SandboxedParserContext() {
-        super(new SandboxedParserConfiguration());
-        this.sandboxedParserConfiguration = (SandboxedParserConfiguration) this.getParserConfiguration();
-        setLiterals(AbstractParser.LITERALS
-                .entrySet().stream().filter(entry -> !SandboxedClassLoader.forbiddenClassLiterals.contains(entry.getKey()))
-                .collect(HashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), HashMap::putAll));
+    public SandboxedParserContext(SandboxedParserConfiguration sandboxedParserConfiguration) {
+        super(sandboxedParserConfiguration);
     }
 
-    public void addAllowedPackage(String packageName) {
-        this.sandboxedParserConfiguration.addAllowedPackage(packageName);
+    @Override
+    public boolean hasLiteral(String property) {
+        return SandboxedParserConfiguration.literals.containsKey(property);
+    }
+
+    @Override
+    public Object getLiteral(String property) {
+        return SandboxedParserConfiguration.literals.get(property);
+    }
+
+    @Override
+    public void setLiterals(Map<String, Object> literals) {
+        // Do nothing
     }
 
     @Override

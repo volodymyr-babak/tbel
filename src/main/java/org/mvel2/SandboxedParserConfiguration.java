@@ -2,12 +2,17 @@ package org.mvel2;
 
 import org.mvel2.compiler.AbstractParser;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SandboxedParserConfiguration extends ParserConfiguration {
 
     private SandboxedClassLoader sanboxedClassLoader = new SandboxedClassLoader();
+
+    protected static final Map<String, Object> literals = AbstractParser.LITERALS
+            .entrySet().stream().filter(entry -> !SandboxedClassLoader.forbiddenClassLiterals.contains(entry.getKey()))
+            .collect(HashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), HashMap::putAll);
 
     public SandboxedParserConfiguration() {
         setClassLoader(sanboxedClassLoader);
