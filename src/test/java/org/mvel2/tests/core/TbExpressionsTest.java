@@ -235,6 +235,15 @@ public class TbExpressionsTest extends TestCase {
         assertEquals(5, res);
     }
 
+    public void testForbidImport() {
+        try {
+            executeScript("import java.util.HashMap; m = new HashMap(); m.put('t', 10); m");
+            fail("Should throw UnsupportedOperationException");
+        } catch (UnsupportedOperationException e) {
+            assertTrue(e.getMessage().contains("Import is forbidden!"));
+        }
+    }
+
     public void testUseClassImport() {
         try {
             executeScript("MyTestUtil.getFoo({foo: 'foo-bar'})");
