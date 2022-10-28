@@ -230,6 +230,13 @@ public class TbExpressionsTest extends TestCase {
             assertTrue(e.getMessage().contains("could not access property: class"));
         }
 
+        try {
+            executeScript("m = new java.io.File(\"password.txt\").exists(); m");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("could not resolve class: java.io.File"));
+        }
+
         Object res = executeScript("m = {class: 5}; m.class");
         assertNotNull(res);
         assertEquals(5, res);

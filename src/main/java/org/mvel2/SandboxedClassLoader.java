@@ -42,7 +42,7 @@ public class SandboxedClassLoader extends URLClassLoader {
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         if (!classNameAllowed(name)) {
-            throw new ClassNotFoundException();
+            throw new ClassNotFoundException(name);
         }
         return super.loadClass(name, resolve);
     }
@@ -50,7 +50,7 @@ public class SandboxedClassLoader extends URLClassLoader {
     @Override
     public Class<?> loadClass(String name) throws ClassNotFoundException {
         if (!classNameAllowed(name)) {
-            throw new ClassNotFoundException();
+            throw new ClassNotFoundException(name);
         }
         return super.loadClass(name);
     }

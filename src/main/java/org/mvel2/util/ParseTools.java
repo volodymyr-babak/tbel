@@ -583,15 +583,7 @@ public class ParseTools {
         cls = Class.forName(className, true, classLoader);
       }
       catch (ClassNotFoundException e) {
-        /**
-         * Now try the system classloader.
-         */
-        if (classLoader != Thread.currentThread().getContextClassLoader()) {
-          cls = forName(className, true, Thread.currentThread().getContextClassLoader());
-        }
-        else {
           throw e;
-        }
       }
 
       cache.put(className, new WeakReference<Class>(cls));
