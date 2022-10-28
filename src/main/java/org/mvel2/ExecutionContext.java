@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ExecutionContext implements Serializable {
@@ -115,7 +116,9 @@ public class ExecutionContext implements Serializable {
     }
 
     private long getValueSize(Object value) {
-        if (value instanceof ExecutionObject) {
+        if (value == null) {
+            return 0;
+        } else if (value instanceof ExecutionObject) {
             if (valueReferenceMap.containsKey(value)) {
                 return 4;
             } else {
@@ -135,6 +138,8 @@ public class ExecutionContext implements Serializable {
             return 1;
         } else if (value instanceof Byte) {
             return 1;
+        } else if (value instanceof UUID) {
+            return 16;
         } else {
             throw new ScriptRuntimeException("Unsupported value type: " + value.getClass());
         }
