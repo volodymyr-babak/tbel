@@ -15,6 +15,7 @@ import org.mvel2.util.MethodStub;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +116,7 @@ public class TbExpressionsTest extends TestCase {
     public void testMemoryOverflowVariable() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
-            executeScript("t = 'abc'; while(true) { t  += t}; t", new HashMap(), new ExecutionContext(memoryLimit));
+            executeScript("t = 'abc'; while(true) { t  += t}; t", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -126,7 +127,7 @@ public class TbExpressionsTest extends TestCase {
     public void testMemoryOverflowInnerMap1() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
-            executeScript("m = {}; m.put('a', {}); i =0; while(true) { m.get('a').put(i++, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random());}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            executeScript("m = {}; m.put('a', {}); i =0; while(true) { m.get('a').put(i++, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random());}; m", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -137,7 +138,7 @@ public class TbExpressionsTest extends TestCase {
     public void testMemoryOverflowInnerMap2() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
-            executeScript("m = {}; m.a = {}; i =0; while(true) { m.a[i++] = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random();}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            executeScript("m = {}; m.a = {}; i =0; while(true) { m.a[i++] = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random();}; m", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -148,7 +149,7 @@ public class TbExpressionsTest extends TestCase {
     public void testMemoryOverflowArray() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
-            executeScript("m = []; i =0; while(true) { m.add('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random())}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            executeScript("m = []; i =0; while(true) { m.add('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random())}; m", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -159,7 +160,7 @@ public class TbExpressionsTest extends TestCase {
     public void testMemoryOverflowArrayInnerMap() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
-            executeScript("m = [1]; m[0] = {}; i =0; while(true) { m[0].put(i++, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random())}; m", new HashMap(), new ExecutionContext(memoryLimit));
+            executeScript("m = [1]; m[0] = {}; i =0; while(true) { m[0].put(i++, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' + Math.random())}; m", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -170,7 +171,7 @@ public class TbExpressionsTest extends TestCase {
     public void testMemoryOverflowAddAll() throws Exception {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
-            executeScript("a = ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']; b = []; while(true) { b.addAll(a)}; m", new HashMap(), new ExecutionContext(memoryLimit), 10000);
+            executeScript("a = ['aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']; b = []; while(true) { b.addAll(a)}; m", new HashMap(), new ExecutionContext(parserConfig, memoryLimit), 10000);
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -318,6 +319,35 @@ public class TbExpressionsTest extends TestCase {
         assertArrayEquals(new String[]{"a1", "a2", "a3", "a4", "a5"}, ((List)res).toArray(new String[5]));
     }
 
+    public void testRegisterDataType() {
+        try {
+            executeScript("var t = new MyTest('test val'); t");
+            fail("Should throw CompileException");
+        } catch (CompileException e) {
+            Assert.assertTrue(e.getMessage().contains("could not resolve class: MyTest"));
+        }
+        this.parserConfig.registerDataType("MyTest", MyTestClass.class, val -> (long)val.getValue().getBytes().length);
+        Object res = executeScript("var t = new MyTest('test val'); t");
+        assertTrue(res instanceof MyTestClass);
+        assertEquals("test val", ((MyTestClass)res).getValue());
+        try {
+            executeScript("var t = new MyTest('test val'); t", new HashMap(), new ExecutionContext(parserConfig, 7));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("8 > 7"));
+        }
+    }
+
+    public void testDate() {
+        Object res = executeScript("var t = new java.util.Date(); t");
+        assertTrue(res instanceof Date);
+        assertEquals(System.currentTimeMillis() / 100, ((Date) res).getTime() / 100);
+        res = executeScript("var t = new java.util.Date(); var m = {date: t}; m");
+        assertTrue(res instanceof Map);
+        assertTrue(((Map<?, ?>) res).get("date") instanceof Date);
+    }
+
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext, long timeoutMs) throws Exception {
         final CountDownLatch countDown = new CountDownLatch(1);
         AtomicReference<Object> result = new AtomicReference<>();
@@ -351,7 +381,7 @@ public class TbExpressionsTest extends TestCase {
     }
 
     private Object executeScript(String ex, Map vars) {
-        return executeScript(ex, vars, new ExecutionContext());
+        return executeScript(ex, vars, new ExecutionContext(this.parserConfig));
     }
 
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext) {
@@ -391,5 +421,17 @@ public class TbExpressionsTest extends TestCase {
             List list = new ExecutionArrayList(Arrays.asList(vals), ctx);
             return list;
         }
+    }
+
+    public static final class MyTestClass {
+        private final String innerValue;
+        public MyTestClass(String val) {
+            this.innerValue = val;
+        }
+
+        public String getValue() {
+            return innerValue;
+        }
+
     }
 }

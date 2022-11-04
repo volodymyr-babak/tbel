@@ -4,9 +4,12 @@ import org.mvel2.compiler.AbstractParser;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SandboxedParserConfiguration extends ParserConfiguration {
+
+    private final Map<Class<?>, Function<Object, Long>> additionalDataTypes = new HashMap<>();
 
     private SandboxedClassLoader sanboxedClassLoader = new SandboxedClassLoader();
 
@@ -35,6 +38,12 @@ public class SandboxedParserConfiguration extends ParserConfiguration {
     }
 
     @Override
+    public void addImport(String name, Class cls) {
+        super.addImport(name, cls);
+        sanboxedClassLoader.addAllowedClass(cls);
+    }
+
+    @Override
     public Object getStaticOrClassImport(String name) {
         return imports.getOrDefault(name, null);
     }
@@ -42,5 +51,15 @@ public class SandboxedParserConfiguration extends ParserConfiguration {
     public void addAllowedPackage(String packageName) {
         super.addPackageImport(packageName);
         this.sanboxedClassLoader.addAllowedPackage(packageName);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> void registerDataType(String name, Class<T> cls, Function<T, Long> valueSizeFunction) {
+        this.addImport(name, cls);
+        this.additionalDataTypes.put(cls, (Function<Object, Long>) valueSizeFunction);
+    }
+
+    public Function<Object, Long> getValueSizeFunction(Class<?> cls) {
+        return this.additionalDataTypes.get(cls);
     }
 }

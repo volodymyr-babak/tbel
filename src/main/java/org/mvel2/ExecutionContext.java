@@ -1,9 +1,9 @@
 package org.mvel2;
 
-import org.mvel2.ast.PrototypalFunctionInstance;
 import org.mvel2.execution.ExecutionObject;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -11,12 +11,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 public class ExecutionContext implements Serializable {
 
     private final Map<Object, ValueReference> valueReferenceMap = new IdentityHashMap<>();
     private final Map<String, Object> variablesMap = new HashMap<>();
 
+    private final SandboxedParserConfiguration parserConfig;
     private final long maxAllowedMemory;
 
     private long memorySize = 0;
@@ -25,11 +27,12 @@ public class ExecutionContext implements Serializable {
 
     private volatile boolean stopped = false;
 
-    public ExecutionContext() {
-        this(-1);
+    public ExecutionContext(SandboxedParserConfiguration parserConfig) {
+        this(parserConfig, -1);
     }
 
-    public ExecutionContext(long maxAllowedMemory) {
+    public ExecutionContext(SandboxedParserConfiguration parserConfig, long maxAllowedMemory) {
+        this.parserConfig = parserConfig;
         this.maxAllowedMemory = maxAllowedMemory;
     }
 
@@ -118,6 +121,10 @@ public class ExecutionContext implements Serializable {
     private long getValueSize(Object value) {
         if (value == null) {
             return 0;
+        }
+        Function<Object, Long> valueSizeFunction = this.parserConfig.getValueSizeFunction(value.getClass());
+        if (valueSizeFunction != null) {
+            return valueSizeFunction.apply(value);
         } else if (value instanceof ExecutionObject) {
             if (valueReferenceMap.containsKey(value)) {
                 return 4;
@@ -140,6 +147,8 @@ public class ExecutionContext implements Serializable {
             return 1;
         } else if (value instanceof UUID) {
             return 16;
+        } else if (value instanceof Date) {
+            return 8;
         } else {
             throw new ScriptRuntimeException("Unsupported value type: " + value.getClass());
         }
