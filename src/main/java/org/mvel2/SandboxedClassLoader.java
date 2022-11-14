@@ -32,7 +32,6 @@ public class SandboxedClassLoader extends URLClassLoader {
 
     public SandboxedClassLoader() {
         super(new URL[0], Thread.currentThread().getContextClassLoader());
-        allowedPackages.add("org.mvel2");
         allowedPackages.add("java.util");
         AbstractParser.CLASS_LITERALS
                 .entrySet().stream().filter(entry -> !forbiddenClassLiterals.contains(entry.getKey()))

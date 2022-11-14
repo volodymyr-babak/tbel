@@ -238,6 +238,18 @@ public class TbExpressionsTest extends TestCase {
             assertTrue(e.getMessage().contains("could not resolve class: java.io.File"));
         }
 
+        try {
+            executeScript("m = MVEL.eval(\"System.exit(-1);\"); m");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: MVEL"));
+        }
+        try {
+            executeScript("m = org.mvel2.MVEL.eval(\"System.exit(-1);\"); m");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: org"));
+        }
         Object res = executeScript("m = {class: 5}; m.class");
         assertNotNull(res);
         assertEquals(5, res);
