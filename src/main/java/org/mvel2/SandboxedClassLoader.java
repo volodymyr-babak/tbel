@@ -29,9 +29,11 @@ public class SandboxedClassLoader extends URLClassLoader {
 
     private final Set<String> allowedClasses = new HashSet<>();
     private final Set<String> allowedPackages = new HashSet<>();
+    private final Set<String> forbiddenPackages = new HashSet<>();
 
     public SandboxedClassLoader() {
         super(new URL[0], Thread.currentThread().getContextClassLoader());
+        forbiddenPackages.add("java.util.concurrent");
         allowedPackages.add("java.util");
         AbstractParser.CLASS_LITERALS
                 .entrySet().stream().filter(entry -> !forbiddenClassLiterals.contains(entry.getKey()))
@@ -65,6 +67,11 @@ public class SandboxedClassLoader extends URLClassLoader {
     private boolean classNameAllowed(String name) {
         if (allowedClasses.contains(name)) {
             return true;
+        }
+        for (String pkgName : forbiddenPackages) {
+            if (name.startsWith(pkgName)) {
+                return false;
+            }
         }
         for (String pkgName : allowedPackages) {
             if (name.startsWith(pkgName)) {

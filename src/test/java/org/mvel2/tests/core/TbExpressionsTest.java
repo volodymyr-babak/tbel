@@ -250,6 +250,12 @@ public class TbExpressionsTest extends TestCase {
         } catch (CompileException e) {
             assertTrue(e.getMessage().contains("unresolvable property or identifier: org"));
         }
+        try {
+            executeScript("java.util.concurrent.Executors.newFixedThreadPool(2)");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: java"));
+        }
         Object res = executeScript("m = {class: 5}; m.class");
         assertNotNull(res);
         assertEquals(5, res);
