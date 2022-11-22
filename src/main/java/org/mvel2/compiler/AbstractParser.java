@@ -126,6 +126,8 @@ public class AbstractParser implements Parser, Serializable {
   protected boolean lastWasComment = false;
   protected boolean compileMode = false;
 
+  protected boolean lastWasVar = false;
+
   protected int literalOnly = -1;
 
   protected int lastLineStart = 0;
@@ -500,13 +502,14 @@ public class AbstractParser implements Parser, Serializable {
                   if (cursor != end && expr[cursor] == '=') {
                     if (end == (cursor = st))
                       throw new CompileException("illegal use of reserved word: var", expr, st);
-
+                    this.lastWasVar = true;
                     continue Mainloop;
                   }
                   else {
                     name = new String(expr, st, end - st);
                     if (pCtx != null && (idx = pCtx.variableIndexOf(name)) != -1) {
                       splitAccumulator.add(lastNode = new IndexedDeclTypedVarNode(idx, st, end - st, Object.class, pCtx));
+                      pCtx.addLocalDeclaration(name);
                     }
                     else {
                       splitAccumulator.add(lastNode = new DeclTypedVarNode(name, expr, st, end - st, Object.class,
@@ -851,6 +854,10 @@ public class AbstractParser implements Parser, Serializable {
                         trimLeft(cursor) - st,
                         ASTNode.ASSIGN, idx, pCtx);
 
+                    if (this.lastWasVar) {
+                      this.lastWasVar = false;
+                      pCtx.addLocalDeclaration(ian.getVarName());
+                    }
                     if (idx == -1) {
                       pCtx.addIndexedInput(t = ian.getVarName());
                       ian.setRegister(pCtx.variableIndexOf(t));
@@ -860,8 +867,13 @@ public class AbstractParser implements Parser, Serializable {
                   else {
                     captureToEOS();
 
-                    return lastNode = new AssignmentNode(expr, st, cursor - st,
+                    AssignmentNode an = new AssignmentNode(expr, st, cursor - st,
                         fields | ASTNode.ASSIGN, pCtx);
+                    if (this.lastWasVar) {
+                      this.lastWasVar = false;
+                      pCtx.addLocalDeclaration(an.getVarName());
+                    }
+                    return lastNode = an;
                   }
                 }
                 break CaptureLoop;

@@ -43,7 +43,7 @@ public class MapCreator implements Accessor {
     } else {
       map = new HashMap<>(size * 2);
     }
-    for (int i = size - 1; i != -1; i--) {
+    for (int i = 0; i < size; i++) {
       //noinspection unchecked
       map.put(getKey(i, ctx, elCtx, variableFactory), vals[i].getValue(ctx, elCtx, variableFactory));
     }

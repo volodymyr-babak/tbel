@@ -1,25 +1,33 @@
 package org.mvel2;
 
+import org.mvel2.execution.ExecutionArrayList;
 import org.mvel2.execution.ExecutionObject;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ExecutionContext implements Serializable {
 
     private final Map<Object, ValueReference> valueReferenceMap = new IdentityHashMap<>();
-    private final Map<String, Object> variablesMap = new HashMap<>();
+    private final Map<VarKey, Object> variablesMap = new HashMap<>();
 
     private final SandboxedParserConfiguration parserConfig;
     private final long maxAllowedMemory;
+
+    private int stackLevel = 0;
 
     private long memorySize = 0;
 
@@ -50,28 +58,64 @@ public class ExecutionContext implements Serializable {
         this.stopped = true;
     }
 
-    public Object checkAssignVariable(String varName, Object value) {
-        if (this.variablesMap.containsKey(varName)) {
-            Object prevValue = this.variablesMap.get(varName);
+    public void enterStack() {
+        this.stackLevel++;
+    }
+
+    public void leaveStack() {
+        int level = this.stackLevel;
+        List<VarKey> keysToRemove = variablesMap.keySet().stream().filter(varKey -> varKey.level == level).collect(Collectors.toList());
+        keysToRemove.forEach(key -> this.checkAssignVariable(key, null));
+        this.stackLevel--;
+    }
+
+    public void checkArray(Class<?> componentType, int... dimensions) {
+        if (componentType.isPrimitive()) {
+            long arraySize = 1;
+            for (int i =0; i < dimensions.length; i++) {
+                arraySize *= dimensions[i];
+            }
+            long arrayMemorySize = arraySize * componentTypeSize(componentType);
+            if (maxAllowedMemory > 0 && arrayMemorySize > maxAllowedMemory / 2) {
+                throw new ScriptMemoryOverflowException("Max array length overflow (" + arrayMemorySize + " > " + maxAllowedMemory / 2 + ")!");
+            }
+        } else {
+            throw new ScriptRuntimeException("Unsupported array type: " + componentType);
+        }
+    }
+
+    public Object checkAssignGlobalVariable(String varName, Object value) {
+        return this.checkAssignVariable(new VarKey(0, varName), value);
+    }
+
+    public Object checkAssignLocalVariable(String varName, Object value) {
+        return this.checkAssignVariable(new VarKey(this.stackLevel, varName), value);
+    }
+
+    private Object checkAssignVariable(VarKey varKey, Object value) {
+        if (this.variablesMap.containsKey(varKey)) {
+            Object prevValue = this.variablesMap.get(varKey);
             ValueReference reference = valueReferenceMap.get(prevValue);
             if (reference != null) {
-                if (reference.removeReference(varName)) {
+                if (reference.removeReference(varKey)) {
                     valueReferenceMap.remove(prevValue);
                     memorySize -= reference.getSize();
                 }
             }
         }
         if (value != null) {
-            this.variablesMap.put(varName, value);
+            Object converted = convertValue(value);
+            this.variablesMap.put(varKey, converted);
             ValueReference reference = valueReferenceMap.computeIfAbsent(value, o -> {
                 ValueReference newReference = new ValueReference();
-                newReference.setSize(getValueSize(value));
+                newReference.setSize(getValueSize(converted));
                 memorySize += newReference.getSize();
                 return newReference;
             });
-            reference.addReference(varName);
+            reference.addReference(varKey);
+            value = converted;
         } else {
-            this.variablesMap.remove(varName);
+            this.variablesMap.remove(varKey);
         }
         this.checkMemoryLimit();
         return value;
@@ -118,6 +162,13 @@ public class ExecutionContext implements Serializable {
         }
     }
 
+    private Object convertValue(Object value) {
+        if (value.getClass().isArray() && !value.getClass().getComponentType().isPrimitive()) {
+            value = new ExecutionArrayList(Arrays.asList((Object[])value), this);
+        }
+        return value;
+    }
+
     private long getValueSize(Object value) {
         if (value == null) {
             return 0;
@@ -133,6 +184,12 @@ public class ExecutionContext implements Serializable {
             }
         } else if (value instanceof String) {
             return ((String) value).getBytes().length;
+        } else if (value instanceof Byte) {
+            return 1;
+        } else if (value instanceof Character) {
+            return 1;
+        } else if (value instanceof Short) {
+            return 2;
         } else if (value instanceof Integer) {
             return 4;
         } else if (value instanceof Long) {
@@ -143,27 +200,71 @@ public class ExecutionContext implements Serializable {
             return 8;
         } else if (value instanceof Boolean) {
             return 1;
-        } else if (value instanceof Byte) {
-            return 1;
         } else if (value instanceof UUID) {
             return 16;
         } else if (value instanceof Date) {
             return 8;
+        } else if (value.getClass().isArray() && value.getClass().getComponentType().isPrimitive()) {
+            return (long) Array.getLength(value) * componentTypeSize(value.getClass().getComponentType());
         } else {
             throw new ScriptRuntimeException("Unsupported value type: " + value.getClass());
         }
     }
 
-    private static final class ValueReference {
-        private final Set<String> references = new HashSet<>();
-        private long size = 0;
+    private static int componentTypeSize(Class<?> componentType) {
+        if (byte.class.equals(componentType)) {
+            return 1;
+        } else if (char.class.equals(componentType)) {
+            return 1;
+        } else if (short.class.equals(componentType)) {
+            return 2;
+        } else if (int.class.equals(componentType)) {
+            return 4;
+        } else if (long.class.equals(componentType)) {
+            return 8;
+        } else if (float.class.equals(componentType)) {
+            return 4;
+        } else if (double.class.equals(componentType)) {
+            return 8;
+        } else if (boolean.class.equals(componentType)) {
+            return 1;
+        } else {
+            throw new ScriptRuntimeException("Unsupported array primitive type: " + componentType);
+        }
+    }
 
-        void addReference(String varName) {
-            references.add(varName);
+    private static final class VarKey {
+        private final int level;
+        private final String name;
+        VarKey(int level, String name) {
+            this.level = level;
+            this.name = name;
         }
 
-        boolean removeReference(String varName) {
-            references.remove(varName);
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            VarKey varKey = (VarKey) o;
+            return level == varKey.level && Objects.equals(name, varKey.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(level, name);
+        }
+    }
+
+    private static final class ValueReference {
+        private final Set<VarKey> references = new HashSet<>();
+        private long size = 0;
+
+        void addReference(VarKey varKey) {
+            references.add(varKey);
+        }
+
+        boolean removeReference(VarKey varKey) {
+            references.remove(varKey);
             return references.isEmpty();
         }
 

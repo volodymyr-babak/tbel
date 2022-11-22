@@ -2,10 +2,10 @@ package org.mvel2.execution;
 
 import org.mvel2.ExecutionContext;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class ExecutionHashMap<K, V> extends HashMap<K, V> implements ExecutionObject {
+public class ExecutionHashMap<K, V> extends LinkedHashMap<K, V> implements ExecutionObject {
 
     private final ExecutionContext executionContext;
 
@@ -25,22 +25,27 @@ public class ExecutionHashMap<K, V> extends HashMap<K, V> implements ExecutionOb
             V prevValue = this.get(key);
             this.memorySize -= this.executionContext.onValRemove(this, key, prevValue);
         }
-        V res = super.put(key, value);
-        this.memorySize += this.executionContext.onValAdd(this, key, value);
+        V res;
+        if (value != null) {
+            res = super.put(key, value);
+            this.memorySize += this.executionContext.onValAdd(this, key, value);
+        } else {
+            res = super.remove(key);
+        }
         return res;
     }
 
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
         super.putAll(m);
-        for (Entry val : m.entrySet()) {
+        for (Map.Entry<? extends K, ? extends V> val : m.entrySet()) {
             this.memorySize += this.executionContext.onValAdd(this, val.getKey(), val.getValue());
         }
     }
 
     @Override
     public V putIfAbsent(K key, V value) {
-        if (super.containsKey(key)) {
+        if (!super.containsKey(key)) {
             this.memorySize += this.executionContext.onValAdd(this, key, value);
         }
         return super.putIfAbsent(key, value);

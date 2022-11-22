@@ -438,9 +438,35 @@ public class ASTNode implements Cloneable, Serializable {
     }
   }
 
-  protected Object checkAssignVariable(Object ctx, String varName, Object value) {
+  protected void checkArray(Object ctx, Class<?> componentType, int... dimensions) {
     if (ctx instanceof ExecutionContext) {
-      return ((ExecutionContext)ctx).checkAssignVariable(varName, value);
+      ((ExecutionContext)ctx).checkArray(componentType, dimensions);
+    }
+  }
+
+  protected void enterStack(Object ctx) {
+    if (ctx instanceof ExecutionContext) {
+      ((ExecutionContext) ctx).enterStack();
+    }
+  }
+
+  protected void leaveStack(Object ctx) {
+    if (ctx instanceof ExecutionContext) {
+      ((ExecutionContext) ctx).leaveStack();
+    }
+  }
+
+  protected Object checkAssignLocalVariable(Object ctx, String varName, Object value) {
+    if (ctx instanceof ExecutionContext) {
+      return ((ExecutionContext)ctx).checkAssignLocalVariable(varName, value);
+    } else {
+      return value;
+    }
+  }
+
+  protected Object checkAssignGlobalVariable(Object ctx, String varName, Object value) {
+    if (ctx instanceof ExecutionContext) {
+      return ((ExecutionContext)ctx).checkAssignGlobalVariable(varName, value);
     } else {
       return value;
     }

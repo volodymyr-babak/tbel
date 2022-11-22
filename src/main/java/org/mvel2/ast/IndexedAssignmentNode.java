@@ -115,10 +115,12 @@ public class IndexedAssignmentNode extends ASTNode implements Assignment {
     }
     else if (statement != null) {
       if (factory.isIndexedFactory()) {
-        factory.createIndexedVariable(register, name, ctx = statement.getValue(ctx, thisValue, factory));
+        ctx = checkAssignLocalVariable(ctx, name, statement.getValue(ctx, thisValue, factory));
+        factory.createIndexedVariable(register, name, ctx);
       }
       else {
-        factory.createVariable(name, ctx = statement.getValue(ctx, thisValue, factory));
+        ctx = checkAssignLocalVariable(ctx, name, statement.getValue(ctx, thisValue, factory));
+        factory.createVariable(name, ctx);
       }
     }
     else {
@@ -126,7 +128,7 @@ public class IndexedAssignmentNode extends ASTNode implements Assignment {
         factory.createIndexedVariable(register, name, null);
       }
       else {
-        factory.createVariable(name, statement.getValue(ctx, thisValue, factory));
+        factory.createVariable(name, checkAssignLocalVariable(ctx, name, statement.getValue(ctx, thisValue, factory)));
       }
       return Void.class;
     }
@@ -141,7 +143,8 @@ public class IndexedAssignmentNode extends ASTNode implements Assignment {
       MVEL.setProperty(factory.getIndexedVariableResolver(register).getValue(), new String(index), ctx = MVEL.eval(stmt, ctx, factory));
     }
     else {
-      factory.createIndexedVariable(register, name, ctx = MVEL.eval(stmt, ctx, factory));
+      ctx = checkAssignLocalVariable(ctx, name, MVEL.eval(stmt, ctx, factory));
+      factory.createIndexedVariable(register, name, ctx);
     }
 
     return ctx;

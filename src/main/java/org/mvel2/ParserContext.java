@@ -70,6 +70,8 @@ public class ParserContext implements Serializable {
 
   private ArrayList<String> indexedInputs;
   private ArrayList<String> indexedLocals;
+
+  private ArrayList<String> localDeclarations;
   private ArrayList<Set<String>> variableVisibility;
 
   private HashMap<String, Class> variables;
@@ -917,6 +919,10 @@ public class ParserContext implements Serializable {
     if (indexedLocals == null) indexedLocals = new ArrayList<String>();
   }
 
+  private void initLocalDeclarations() {
+    if (localDeclarations == null) localDeclarations = new ArrayList<>();
+  }
+
   private Map<String, Object> literals() {
     return this.literals != null ? this.literals : AbstractParser.LITERALS;
   }
@@ -952,6 +958,11 @@ public class ParserContext implements Serializable {
       if (!indexedLocals.contains(s))
         indexedLocals.add(s);
     }
+  }
+
+  public void addLocalDeclaration(String variable) {
+    initLocalDeclarations();
+    if (!localDeclarations.contains(variable)) localDeclarations.add(variable);
   }
 
   public void addIndexedLocals(Collection<String> variables) {
@@ -990,6 +1001,14 @@ public class ParserContext implements Serializable {
     }
 
     return -1;
+  }
+
+  public boolean hasLocalDeclaration(String name) {
+    if (localDeclarations != null) {
+      return localDeclarations.indexOf(name) > -1;
+    } else {
+      return false;
+    }
   }
 
   public Object getEvaluationContext() {

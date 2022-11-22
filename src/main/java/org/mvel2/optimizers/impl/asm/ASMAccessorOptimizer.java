@@ -1939,7 +1939,7 @@ private Object optimizeFieldMethodProperty(Object ctx, String property, Class<?>
             "(Ljava/lang/Object;Ljava/lang/Object;L" + NAMESPACE
                 + "integration/VariableResolverFactory;[Ljava/lang/Object;)Ljava/lang/Object;");
 
-        return ((FunctionInstance) ptr).call(ctx, thisRef, variableFactory, args);
+        return ((FunctionInstance) ptr).call(ctx, null, thisRef, variableFactory, args);
       }
       else {
         throw new OptimizationFailure("attempt to optimize a method call for a reference that does not point to a method: "

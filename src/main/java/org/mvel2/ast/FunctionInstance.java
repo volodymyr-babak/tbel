@@ -1,5 +1,6 @@
 package org.mvel2.ast;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.integration.VariableResolverFactory;
 
 /**
@@ -17,6 +18,10 @@ public class FunctionInstance {
   }
 
   public Object call(Object ctx, Object thisValue, VariableResolverFactory factory, Object[] parms) {
-    return function.call(ctx, thisValue, factory, parms);
+    return this.call(ctx, null, thisValue, factory, parms);
+  }
+
+  public Object call(Object ctx, ExecutionContext execCtx, Object thisValue, VariableResolverFactory factory, Object[] parms) {
+    return function.call(ctx, execCtx, thisValue, factory, parms);
   }
 }

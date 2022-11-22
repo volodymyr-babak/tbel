@@ -25,6 +25,7 @@ import org.mvel2.compiler.ExecutableStatement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -96,7 +97,7 @@ public class CollectionParser {
   private Object parseCollection(boolean subcompile) {
     if (end - start == 0) {
       if (type == LIST) return new ArrayList();
-      else if (type == MAP) return new HashMap<>();
+      else if (type == MAP) return new LinkedHashMap<>();
       else return EMPTY_ARRAY;
     }
 
@@ -112,7 +113,7 @@ public class CollectionParser {
           list = new ArrayList<Object>();
           break;
         case MAP:
-          map = new HashMap<Object, Object>();
+          map = new LinkedHashMap<Object, Object>();
           break;
       }
     }
@@ -202,7 +203,7 @@ public class CollectionParser {
 
         case ':':
           if (type != MAP) {
-            map = new HashMap<Object, Object>();
+            map = new LinkedHashMap<Object, Object>();
             type = MAP;
           }
           curr = createStringTrimmed(property, st, cursor - st);

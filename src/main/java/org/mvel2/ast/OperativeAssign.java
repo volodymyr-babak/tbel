@@ -56,13 +56,13 @@ public class OperativeAssign extends ASTNode {
 
   public Object getReducedValueAccelerated(Object ctx, Object thisValue, VariableResolverFactory factory) {
     VariableResolver resolver = factory.getVariableResolver(varName);
-    resolver.setValue(ctx = checkAssignVariable(ctx, varName, MathProcessor.doOperations(resolver.getValue(), operation, knownInType, statement.getValue(ctx, thisValue, factory))));
+    resolver.setValue(ctx = checkAssignGlobalVariable(ctx, varName, MathProcessor.doOperations(resolver.getValue(), operation, knownInType, statement.getValue(ctx, thisValue, factory))));
     return ctx;
   }
 
   public Object getReducedValue(Object ctx, Object thisValue, VariableResolverFactory factory) {
     VariableResolver resolver = factory.getVariableResolver(varName);
-    resolver.setValue(ctx = checkAssignVariable(ctx, varName, MathProcessor.doOperations(resolver.getValue(), operation, eval(expr, start, offset, ctx, factory))));
+    resolver.setValue(ctx = checkAssignGlobalVariable(ctx, varName, MathProcessor.doOperations(resolver.getValue(), operation, eval(expr, start, offset, ctx, factory))));
     return ctx;
   }
 }

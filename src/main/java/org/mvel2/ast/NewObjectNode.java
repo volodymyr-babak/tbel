@@ -19,6 +19,7 @@ package org.mvel2.ast;
 
 import org.mvel2.CompileException;
 import org.mvel2.ErrorDetail;
+import org.mvel2.ExecutionContext;
 import org.mvel2.ParserContext;
 import org.mvel2.PropertyAccessor;
 import org.mvel2.compiler.Accessor;
@@ -253,7 +254,7 @@ public class NewObjectNode extends ASTNode {
         for (int i = 0; i < s.length; i++) {
           s[i] = convert(eval(arraySize[i].value, ctx, factory), Integer.class);
         }
-
+        checkArray(ctx, cls, s);
         return newInstance(cls, s);
       }
       else {
@@ -335,7 +336,9 @@ public class NewObjectNode extends ASTNode {
       for (int i = 0; i < s.length; i++) {
         s[i] = convert(sizes[i].getValue(ctx, elCtx, variableFactory), Integer.class);
       }
-
+      if (ctx instanceof ExecutionContext) {
+        ((ExecutionContext)ctx).checkArray(arrayType, s);
+      }
       return newInstance(arrayType, s);
     }
 

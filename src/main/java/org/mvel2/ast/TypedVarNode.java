@@ -62,17 +62,20 @@ public class TypedVarNode extends ASTNode implements Assignment {
         throw new RuntimeException("statically-typed variable already defined in scope: " + name);
       }
       pCtx.addVariable(name, egressType, false);
+      pCtx.addLocalDeclaration(name);
     }
   }
 
   public Object getReducedValueAccelerated(Object ctx, Object thisValue, VariableResolverFactory factory) {
     if (statement == null) statement = (ExecutableStatement) subCompileExpression(expr, start, offset, pCtx);
-    factory.createVariable(name, ctx = statement.getValue(ctx, thisValue, factory), egressType);
+    ctx = checkAssignLocalVariable(ctx, name, statement.getValue(ctx, thisValue, factory));
+    factory.createVariable(name, ctx, egressType);
     return ctx;
   }
 
   public Object getReducedValue(Object ctx, Object thisValue, VariableResolverFactory factory) {
-    factory.createVariable(name, ctx = eval(expr, start, offset, thisValue, factory), egressType);
+    ctx = checkAssignLocalVariable(ctx, name, eval(expr, start, offset, thisValue, factory));
+    factory.createVariable(name, ctx, egressType);
     return ctx;
   }
 

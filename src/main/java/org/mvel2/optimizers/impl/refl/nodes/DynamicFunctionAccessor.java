@@ -18,6 +18,7 @@
  */
 package org.mvel2.optimizers.impl.refl.nodes;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.ast.Function;
 import org.mvel2.ast.FunctionInstance;
 import org.mvel2.compiler.Accessor;
@@ -49,11 +50,13 @@ public class DynamicFunctionAccessor extends BaseAccessor {
       }
     }
 
+    ExecutionContext execCtx = ctx instanceof ExecutionContext ? (ExecutionContext)ctx : null;
+
     if (nextNode != null) {
-      return nextNode.getValue(function.call(ctx, elCtx, variableFactory, parms), elCtx, variableFactory);
+      return nextNode.getValue(function.call(ctx, execCtx, elCtx, variableFactory, parms), elCtx, variableFactory);
     }
     else {
-      return function.call(ctx, elCtx, variableFactory, parms);
+      return function.call(ctx, execCtx, elCtx, variableFactory, parms);
     }
   }
 

@@ -83,6 +83,30 @@ public class TbExpressionsTest extends TestCase {
         assertEquals(2, res);
     }
 
+    public void testVariableScope() {
+        Object res = executeScript("var m = 25; " +
+                                   "function testFunc(a) {" +
+                                   "   function testFunc3(e) {" +
+                                   "       var m = e + 5; " +
+                                   "       return m;" +
+                                   "   };" +
+                                   "   var t = 2;" +
+                                   "   var m = a * t;" +
+                                   "   return testFunc3(testFunc2(m + t));" +
+                                   "}" +
+                                   "function testFunc2(b) {" +
+                                   "   var c = 3;" +
+                                   "   var m = b * c; return m;" +
+                                   "}" +
+                                   "function testFunc4(m) {" +
+                                   "   return m * 2;" +
+                                   "}" +
+                                   "var m2 = m + testFunc(m);" +
+                                   "return testFunc4(m2);");
+        assertTrue(res instanceof Integer);
+        assertEquals((25 + ((25 * 2 + 2) * 3) + 5) * 2, res);
+    }
+
     public void testComments() {
         Object res = executeScript("//var df = sdfsdf; \n // test comment: comment2 \n m = {\n// c: d, \n /* e: \n\nf, */ a: 2 }; m");
         assertTrue(res instanceof HashMap);
@@ -117,6 +141,17 @@ public class TbExpressionsTest extends TestCase {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
             executeScript("t = 'abc'; while(true) { t  += t}; t", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Script memory overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testMemoryOverflowInnerVariable() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("doMemoryOverflow(); function doMemoryOverflow() { var t = 'abc'; while(true) { t  += t}; } ", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -176,6 +211,17 @@ public class TbExpressionsTest extends TestCase {
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
             assertTrue(e.getMessage().contains("" + memoryLimit));
+        }
+    }
+
+    public void testArrayMemoryOverflow() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("m = new byte[5 * 1024 * 1024]; m", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Max array length overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit / 2));
         }
     }
 
@@ -268,6 +314,26 @@ public class TbExpressionsTest extends TestCase {
         } catch (UnsupportedOperationException e) {
             assertTrue(e.getMessage().contains("Import is forbidden!"));
         }
+    }
+
+    public void testPrimitiveArray() {
+        Object res = executeScript("var m = new byte[1000]; m[5] = 1; m[500] = 20; m[40] = 0x0B; m");
+        assertNotNull(res);
+        assertTrue(res instanceof List);
+        assertEquals(1000, ((List<?>) res).size());
+        assertEquals((byte)1, ((List<?>) res).get(5));
+        assertEquals((byte)20, ((List<?>) res).get(500));
+        assertEquals((byte)0x0B, ((List<?>) res).get(40));
+        res = executeScript("var m = 'Hello world'; a = m.toCharArray(); a");
+        assertNotNull(res);
+        assertTrue(res instanceof List);
+        Object[] boxedArray = ((List)res).toArray();
+        int len = boxedArray.length;
+        char[] array = new char[len];
+        for (int i = 0; i < len; i++) {
+            array[i] = (Character) boxedArray[i];
+        }
+        assertEquals("Hello world", String.valueOf(array));
     }
 
     public void testUseClassImport() {

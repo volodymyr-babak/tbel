@@ -883,8 +883,9 @@ public class PropertyAccessor {
         name = ((MethodStub) ptr).getMethodName();
       }
       else if (ptr instanceof FunctionInstance) {
+        ExecutionContext execCtx = ctx instanceof ExecutionContext ? (ExecutionContext)ctx : null;
         ((FunctionInstance) ptr).getFunction().checkArgumentCount(args.length);
-        return ((FunctionInstance) ptr).call(null, thisReference, variableFactory, args);
+        return ((FunctionInstance) ptr).call(null, execCtx, thisReference, variableFactory, args);
       }
       else {
         throw new OptimizationFailure("attempt to optimize a method call for a reference that does not point to a method: "
@@ -961,7 +962,7 @@ public class PropertyAccessor {
       final VariableResolverFactory funcCtx = ((PrototypalFunctionInstance) ctx).getResolverFactory();
       Object prop = funcCtx.getVariableResolver(name).getValue();
       if (prop instanceof PrototypalFunctionInstance) {
-        return ((PrototypalFunctionInstance) prop).call(ctx, thisReference, new InvokationContextFactory(variableFactory, funcCtx), args);
+        return ((PrototypalFunctionInstance) prop).call(ctx, null, thisReference, new InvokationContextFactory(variableFactory, funcCtx), args);
       }
     }
 

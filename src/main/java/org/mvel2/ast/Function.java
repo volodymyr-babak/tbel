@@ -19,6 +19,7 @@
 package org.mvel2.ast;
 
 import org.mvel2.CompileException;
+import org.mvel2.ExecutionContext;
 import org.mvel2.ParserContext;
 import org.mvel2.compiler.ExecutableStatement;
 import org.mvel2.compiler.ExpressionCompiler;
@@ -98,8 +99,10 @@ public class Function extends ASTNode implements Safe {
      */
     if (pCtx.getVariables() != null) {
       for (Map.Entry<String, Class> e : pCtx.getVariables().entrySet()) {
-        ctx.getVariables().remove(e.getKey());
-        ctx.addInput(e.getKey(), e.getValue());
+        if (!ctx.hasLocalDeclaration(e.getKey())) {
+          ctx.getVariables().remove(e.getKey());
+          ctx.addInput(e.getKey(), e.getValue());
+        }
       }
 
       ctx.processTables();
@@ -150,7 +153,7 @@ public class Function extends ASTNode implements Safe {
     return instance;
   }
 
-  public Object call(Object ctx, Object thisValue, VariableResolverFactory factory, Object[] parms) {
+  public Object call(Object ctx, ExecutionContext execCtx, Object thisValue, VariableResolverFactory factory, Object[] parms) {
     if (parms != null && parms.length != 0) {
       // detect tail recursion
       if (factory instanceof FunctionVariableResolverFactory
@@ -160,23 +163,40 @@ public class Function extends ASTNode implements Safe {
           VariableResolver[] swapVR = fvrf.getIndexedVariableResolvers();
           fvrf.updateParameters(parms);
           try {
+            enterStack(execCtx);
             return compiledBlock.getValue(ctx, thisValue, fvrf);
           }
           finally {
+            leaveStack(execCtx);
             fvrf.setIndexedVariableResolvers(swapVR);
           }
         }
       }
-      return compiledBlock.getValue(thisValue,
-          new StackDemarcResolverFactory(new FunctionVariableResolverFactory(this, factory, parameters, parms)));
+      try {
+        enterStack(execCtx);
+        return compiledBlock.getValue(thisValue,
+                new StackDemarcResolverFactory(new FunctionVariableResolverFactory(this, factory, parameters, parms)));
+      } finally {
+        leaveStack(execCtx);
+      }
     }
     else if (compiledMode) {
-      return compiledBlock.getValue(thisValue,
-          new StackDemarcResolverFactory(new DefaultLocalVariableResolverFactory(factory, parameters)));
+      try {
+        enterStack(execCtx);
+        return compiledBlock.getValue(thisValue,
+            new StackDemarcResolverFactory(new DefaultLocalVariableResolverFactory(factory, parameters)));
+      } finally {
+        leaveStack(execCtx);
+      }
     }
     else {
-      return compiledBlock.getValue(thisValue,
-          new StackDemarcResolverFactory(new DefaultLocalVariableResolverFactory(factory, parameters)));
+      try {
+        enterStack(execCtx);
+        return compiledBlock.getValue(thisValue,
+            new StackDemarcResolverFactory(new DefaultLocalVariableResolverFactory(factory, parameters)));
+      } finally {
+        leaveStack(execCtx);
+      }
     }
 
   }

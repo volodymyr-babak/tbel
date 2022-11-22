@@ -41,6 +41,7 @@ public class DeclTypedVarNode extends ASTNode implements Assignment {
 
     if ((fields & COMPILE_IMMEDIATE) != 0) {
       pCtx.addVariable(name, egressType, true);
+      pCtx.addLocalDeclaration(name);
     }
   }
 

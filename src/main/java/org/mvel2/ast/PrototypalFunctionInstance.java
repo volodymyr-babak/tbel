@@ -1,5 +1,6 @@
 package org.mvel2.ast;
 
+import org.mvel2.ExecutionContext;
 import org.mvel2.integration.VariableResolverFactory;
 
 /**
@@ -14,8 +15,8 @@ public class PrototypalFunctionInstance extends FunctionInstance {
   }
 
   @Override
-  public Object call(Object ctx, Object thisValue, VariableResolverFactory factory, Object[] parms) {
-    return function.call(ctx, thisValue, new InvokationContextFactory(factory, resolverFactory), parms);
+  public Object call(Object ctx, ExecutionContext execCtx, Object thisValue, VariableResolverFactory factory, Object[] parms) {
+    return function.call(ctx, execCtx, thisValue, new InvokationContextFactory(factory, resolverFactory), parms);
   }
 
   public VariableResolverFactory getResolverFactory() {

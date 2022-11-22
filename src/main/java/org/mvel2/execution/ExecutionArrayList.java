@@ -97,6 +97,14 @@ public class ExecutionArrayList<E> extends ArrayList<E> implements ExecutionObje
         return oldValue;
     }
 
+    public ExecutionArrayList<E> slice(int start, int end) {
+        return new ExecutionArrayList<>(this.subList(start, end), this.executionContext);
+    }
+
+    public int length() {
+        return size();
+    }
+
     @Override
     public int getId() {
         return id;

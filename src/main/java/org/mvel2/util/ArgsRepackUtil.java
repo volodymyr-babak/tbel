@@ -8,6 +8,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,7 +54,7 @@ public class ArgsRepackUtil {
             return list;
         } else if (value instanceof Map){
             Map src = (Map)value;
-            Map map = new HashMap(src.size());
+            Map map = new LinkedHashMap(src.size());
             src.forEach((k,v) -> map.put(k, unpack(v)));
             return map;
         } else if (value instanceof Collection){

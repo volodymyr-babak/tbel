@@ -85,7 +85,7 @@ public class Proto extends ASTNode {
     public Object call(Object ctx, Object thisCtx, VariableResolverFactory factory, Object[] parms) {
       switch (type) {
         case FUNCTION:
-          return ((Function) receiver).call(ctx, thisCtx, new InvokationContextFactory(factory, instance.instanceStates), parms);
+          return ((Function) receiver).call(ctx, null, thisCtx, new InvokationContextFactory(factory, instance.instanceStates), parms);
         case PROPERTY:
           return receiver;
         case DEFERRED:

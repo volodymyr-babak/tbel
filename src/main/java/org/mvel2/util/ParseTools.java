@@ -1717,7 +1717,10 @@ public class ParseTools {
           case 'I':
             return new BigInteger(new String(val, start, offset - 1));
           case 'B':
-            return new BigDecimal(new String(val, start, offset - 1));
+            if (val[start + 1] != 'x') {
+              return new BigDecimal(new String(val, start, offset - 1));
+            }
+            break;
         }
       }
 

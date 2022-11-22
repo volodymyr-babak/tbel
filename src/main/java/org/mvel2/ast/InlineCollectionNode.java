@@ -29,6 +29,7 @@ import org.mvel2.util.CollectionParser;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -131,7 +132,7 @@ public class InlineCollectionNode extends ASTNode {
       return list;
     }
     else if (o instanceof Map) {
-      HashMap map = new HashMap();
+      HashMap map = new LinkedHashMap();
 
       for (Object item : ((Map) o).keySet()) {
         Object key = item;

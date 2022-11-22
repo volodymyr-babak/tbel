@@ -23,6 +23,7 @@ import org.mvel2.MVEL;
 import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
 import org.mvel2.PropertyAccessException;
+import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.ast.FunctionInstance;
 import org.mvel2.ast.TypeDescriptor;
 import org.mvel2.compiler.Accessor;
@@ -380,6 +381,7 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
 
   private Accessor compileGetChain() {
     Object curr = ctx instanceof ExecutionContext ? null : ctx;
+    ExecutionContext execCtx = ctx instanceof ExecutionContext ? (ExecutionContext)ctx : null;
     cursor = start;
 
     try {
@@ -387,13 +389,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
         while (cursor < end) {
           switch (nextSubToken()) {
             case BEAN:
-              curr = getBeanProperty(curr, capture());
+              curr = getBeanProperty(curr, execCtx, capture());
               break;
             case METH:
-              curr = getMethod(curr, capture());
+              curr = getMethod(curr, execCtx, capture());
               break;
             case COL:
-              curr = getCollectionProperty(curr, capture());
+              curr = getCollectionProperty(curr, execCtx, capture());
               break;
             case WITH:
               curr = getWithProperty(curr);
@@ -421,13 +423,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
         while (cursor < end) {
           switch (nextSubToken()) {
             case BEAN:
-              curr = getBeanPropertyAO(curr, capture());
+              curr = getBeanPropertyAO(curr, execCtx, capture());
               break;
             case METH:
-              curr = getMethod(curr, capture());
+              curr = getMethod(curr, execCtx, capture());
               break;
             case COL:
-              curr = getCollectionPropertyAO(curr, capture());
+              curr = getCollectionPropertyAO(curr, execCtx, capture());
               break;
             case WITH:
               curr = getWithProperty(curr);
@@ -477,6 +479,9 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
     catch (CompileException e) {
       throw e;
     }
+    catch (ScriptMemoryOverflowException e) {
+      throw e;
+    }
     catch (NullPointerException e) {
       throw new PropertyAccessException("null pointer: " + new String(expr, start, length), this.expr, this.st, e, pCtx);
     }
@@ -506,7 +511,7 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
     return wa.getValue(ctx, thisRef, variableFactory);
   }
 
-  private Object getBeanPropertyAO(Object ctx, String property)
+  private Object getBeanPropertyAO(Object ctx, ExecutionContext execCtx, String property)
       throws Exception {
 
     if (GlobalListenerFactory.hasGetListeners()) {
@@ -516,10 +521,10 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
 
     if (ctx != null && hasPropertyHandler(ctx.getClass())) return propHandler(property, ctx, ctx.getClass());
 
-    return getBeanProperty(ctx, property);
+    return getBeanProperty(ctx, execCtx, property);
   }
 
-  private Object getBeanProperty(Object ctx, String property) throws Exception {
+  private Object getBeanProperty(Object ctx, ExecutionContext execCtx, String property) throws Exception {
     if ((pCtx == null ? currType : pCtx.getVarOrInputTypeOrNull(property)) == Object.class
         && !pCtx.isStrongTyping()) {
       currType = null;
@@ -726,7 +731,7 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
         }
       }
       else if (pCtx!=null&& pCtx.getParserConfiguration()!=null?pCtx.getParserConfiguration().isAllowNakedMethCall():MVEL.COMPILER_OPT_ALLOW_NAKED_METH_CALL) {
-        return getMethod(ctx, property);
+        return getMethod(ctx, execCtx, property);
       }
 
 
@@ -757,9 +762,9 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
    * @return -
    * @throws Exception -
    */
-  private Object getCollectionProperty(Object ctx, String prop) throws Exception {
+  private Object getCollectionProperty(Object ctx, ExecutionContext execCtx, String prop) throws Exception {
     if (prop.length() > 0) {
-      ctx = getBeanProperty(ctx, prop);
+      ctx = getBeanProperty(ctx, execCtx, prop);
     }
 
     currType = null;
@@ -859,9 +864,9 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
   }
 
 
-  private Object getCollectionPropertyAO(Object ctx, String prop) throws Exception {
+  private Object getCollectionPropertyAO(Object ctx, ExecutionContext execCtx, String prop) throws Exception {
     if (prop.length() > 0) {
-      ctx = getBeanPropertyAO(ctx, prop);
+      ctx = getBeanPropertyAO(ctx, execCtx, prop);
     }
 
     currType = null;
@@ -983,7 +988,7 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
    * @throws Exception -
    */
   @SuppressWarnings({"unchecked"})
-  private Object getMethod(Object ctx, String name) throws Exception {
+  private Object getMethod(Object ctx, ExecutionContext execCtx, String name) throws Exception {
     int st = cursor;
     String tk = cursor != end
         && expr[cursor] == '(' && ((cursor = balancedCapture(expr, cursor, '(')) - st) > 1 ?
@@ -1039,10 +1044,10 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
       }
     }
 
-    return getMethod(ctx, name, args, argTypes, es);
+    return getMethod(ctx, execCtx, name, args, argTypes, es);
   }
 
-  private Object getMethod(Object ctx, String name, Object[] args, Class[] argTypes, ExecutableStatement[] es) throws Exception {
+  private Object getMethod(Object ctx, ExecutionContext execCtx, String name, Object[] args, Class[] argTypes, ExecutableStatement[] es) throws Exception {
     if (first && variableFactory != null && variableFactory.isResolveable(name)) {
       Object ptr = variableFactory.getVariableResolver(name).getValue();
       if (ptr instanceof Method) {
@@ -1056,13 +1061,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
       else if (ptr instanceof FunctionInstance) {
         FunctionInstance func = (FunctionInstance) ptr;
         if (!name.equals(func.getFunction().getName())) {
-          getBeanProperty(ctx, name);
+          getBeanProperty(ctx, execCtx, name);
           addAccessorNode(new DynamicFunctionAccessor(es));
         }
         else {
           addAccessorNode(new FunctionAccessor(func, es));
         }
-        return func.call(ctx, thisRef, variableFactory, args);
+        return func.call(ctx, execCtx, thisRef, variableFactory, args);
       }
       else {
         throw new OptimizationFailure("attempt to optimize a method call for a reference that does not point to a method: "

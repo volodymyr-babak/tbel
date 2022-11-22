@@ -3,16 +3,15 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.thingsboard</groupId>
-    <artifactId>mvel2</artifactId>
+    <artifactId>tbel</artifactId>
     <packaging>jar</packaging>
-    <version>2.4.25TB</version>
+    <version>1.0.0</version>
 
     <name>mvel</name>
     <url>http://mvel.codehaus.org/</url>
     <description>
-        MVEL is a powerful expression language for Java-based applications.
-        It provides a plethora of features and is suited for everything
-        from the smallest property binding and extraction, to full blown scripts.
+        TBEL is a powerful expression language for ThingsBoard platform user-defined functions.
+        Original implementation is based on MVEL.
     </description>
     <licenses>
         <license>
@@ -23,8 +22,8 @@
     </licenses>
     <inceptionYear>2001</inceptionYear>
     <organization>
-        <name>JBoss by Red Hat</name>
-        <url>http://www.jboss.org/</url>
+        <name>ThingsBoard</name>
+        <url>https://thingsboard.io/</url>
     </organization>
 
     <scm>
