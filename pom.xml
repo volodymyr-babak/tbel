@@ -7,8 +7,8 @@
     <packaging>jar</packaging>
     <version>1.0.0</version>
 
-    <name>mvel</name>
-    <url>http://mvel.codehaus.org/</url>
+    <name>tbel</name>
+    <url>https://thingsboard.io/</url>
     <description>
         TBEL is a powerful expression language for ThingsBoard platform user-defined functions.
         Original implementation is based on MVEL.
@@ -20,20 +20,20 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <inceptionYear>2001</inceptionYear>
+    <inceptionYear>2022</inceptionYear>
     <organization>
         <name>ThingsBoard</name>
         <url>https://thingsboard.io/</url>
     </organization>
 
     <scm>
-        <connection>scm:git:git@github.com:thingsboard/mvel.git</connection>
-        <url>scm:git:git@github.com:thingsboard/mvel.git</url>
-        <developerConnection>scm:git:git@github.com:thingsboard/mvel.git</developerConnection>
+        <connection>scm:git:git@github.com:thingsboard/tbel.git</connection>
+        <url>scm:git:git@github.com:thingsboard/tbel.git</url>
+        <developerConnection>scm:git:git@github.com:thingsboard/tbel.git</developerConnection>
     </scm>
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/thingsboard/mvel/issues</url>
+        <url>https://github.com/thingsboard/tbel/issues</url>
     </issueManagement>
     <developers>
         <developer>
