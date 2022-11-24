@@ -26,6 +26,7 @@ import org.mvel2.debug.Debugger;
 import org.mvel2.debug.DebuggerContext;
 import org.mvel2.integration.VariableResolverFactory;
 import org.mvel2.optimizers.OptimizerFactory;
+import org.mvel2.util.ErrorUtil;
 import org.mvel2.util.ExecutionStack;
 
 import static org.mvel2.Operator.*;
@@ -170,6 +171,24 @@ public class MVELRuntime {
             + tk.getName() + " (possible use of reserved keyword as identifier: " + tk.getName() + ")", tk.getExpr(), tk.getStart());
       }
       else {
+        throw e;
+      }
+    }
+    catch (Exception e) {
+      if (tk != null) {
+        if (e instanceof CompileException) {
+          throw ErrorUtil.rewriteIfNeeded((CompileException)e, tk.getExpr(), tk.getStart());
+        } else if (e instanceof ScriptMemoryOverflowException || e instanceof ScriptExecutionStoppedException){
+          throw e;
+        } else {
+          CompileException ce = new CompileException("Invalid statement: " + tk.getName(), tk.getExpr(), tk.getStart(), e);
+          if (e instanceof ScriptRuntimeException) {
+            throw new ScriptRuntimeException(ce.getMessage(), e);
+          } else {
+            throw ce;
+          }
+        }
+      } else {
         throw e;
       }
     }

@@ -50,7 +50,7 @@ public class ExecutionContext implements Serializable {
 
     public void checkExecution() {
         if (stopped) {
-            throw new ScriptRuntimeException("Script execution is stopped!");
+            throw new ScriptExecutionStoppedException("Script execution is stopped!");
         }
     }
 

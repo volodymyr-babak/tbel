@@ -319,6 +319,9 @@ public class AbstractParser implements Parser, Serializable {
       /**
        * Skip any whitespace currently under the starting point.
        */
+      if (expr[cursor] == '\n' && lastNode != null && !(lastNode instanceof EndOfStatement)) {
+        return lastNode = new EndOfStatement(pCtx);
+      }
       skipWhitespace();
 
       /**
@@ -1901,6 +1904,7 @@ public class AbstractParser implements Parser, Serializable {
         case ',':
         case ';':
         case '}':
+        case '\n':
           return;
       }
       cursor++;

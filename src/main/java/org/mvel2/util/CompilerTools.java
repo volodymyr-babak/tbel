@@ -91,6 +91,9 @@ public class CompilerTools {
 
 
           ASTNode tk2 = astLinkedList.nextNode();
+          if (tk2 == null) {
+            throw new RuntimeException("Invalid expression");
+          }
           BinaryOperation bo;
 
           if (tk.getEgressType() == Integer.class && tk2.getEgressType() == Integer.class) {

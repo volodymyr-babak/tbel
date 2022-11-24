@@ -283,6 +283,8 @@ public class CompileException extends RuntimeException {
 
   public void setCursor(int cursor) {
     this.cursor = cursor;
+    this.lineNumber = 1;
+    this.column = 0;
   }
 
   public int getLastLineStart() {

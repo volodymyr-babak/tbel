@@ -54,7 +54,7 @@ public class ArrayCreator implements Accessor {
 
       res = newArray;
     }
-    if (ctx instanceof ExecutionContext) {
+    if (ctx instanceof ExecutionContext && !res.getClass().getComponentType().isPrimitive()) {
       return new ExecutionArrayList<>(Arrays.asList((Object[])res), (ExecutionContext) ctx);
     } else {
       return res;

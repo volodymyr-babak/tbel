@@ -87,21 +87,20 @@ public class TbExpressionsTest extends TestCase {
         Object res = executeScript("var m = 25; " +
                                    "function testFunc(a) {" +
                                    "   function testFunc3(e) {" +
-                                   "       var m = e + 5; " +
-                                   "       return m;" +
+                                   "       var m = e + 5\n " +
+                                   "       return m" +
                                    "   };" +
-                                   "   var t = 2;" +
-                                   "   var m = a * t;" +
+                                   "   var t = 2\n" +
+                                   "   m = a * t;" +
                                    "   return testFunc3(testFunc2(m + t));" +
                                    "}" +
                                    "function testFunc2(b) {" +
-                                   "   var c = 3;" +
-                                   "   var m = b * c; return m;" +
+                                   "   var c = 3;m = b * c; return m;" +
                                    "}" +
                                    "function testFunc4(m) {" +
                                    "   return m * 2;" +
                                    "}" +
-                                   "var m2 = m + testFunc(m);" +
+                                   "var m2 = m + testFunc(m) \n" +
                                    "return testFunc4(m2);");
         assertTrue(res instanceof Integer);
         assertEquals((25 + ((25 * 2 + 2) * 3) + 5) * 2, res);
@@ -230,7 +229,7 @@ public class TbExpressionsTest extends TestCase {
             executeScript("m = new java.util.HashMap(); m");
             fail("Should throw ScriptRuntimeException");
         } catch (ScriptRuntimeException e) {
-            assertTrue(e.getMessage().contains("Unsupported value type: class java.util.HashMap"));
+            assertTrue(e.getMessage().contains("Invalid statement: new java.util.HashMap()"));
         }
     }
 
@@ -334,6 +333,47 @@ public class TbExpressionsTest extends TestCase {
             array[i] = (Character) boxedArray[i];
         }
         assertEquals("Hello world", String.valueOf(array));
+        res = executeScript("var m = new int[]{1, 2, 3}; m");
+        assertNotNull(res);
+        assertTrue(res instanceof List);
+        assertEquals(3, ((List<?>) res).size());
+        assertEquals(1, ((List<?>) res).get(0));
+        assertEquals(2, ((List<?>) res).get(1));
+        assertEquals(3, ((List<?>) res).get(2));
+    }
+
+    public void testUnterminatedStatement() {
+        Object res = executeScript("var a = \"A\";\n" +
+                "var b = \"B\"\n" +
+                "var c = \"C\"\n" +
+                "result = a + b\n" +
+                "result = c\n\n" +
+                "{msg: result, \n\nmetadata: {}, msgType: ''}");
+        assertNotNull(res);
+        assertTrue(res instanceof Map);
+        assertEquals("C", ((Map<?, ?>) res).get("msg"));
+    }
+
+    public void testRuntimeAndCompileErrors() {
+        try {
+            executeScript("threshold = def (x) { x >= 10 ? x : 0 };\n" +
+                    "result = cost + threshold(lowerBound);");
+            fail("Should throw ScriptRuntimeException");
+        } catch (ScriptRuntimeException e) {
+            assertTrue(e.getMessage().equals("[Error: Invalid statement: def (x) { x >= 10 ? x : 0 }]\n" +
+                    "[Near : {... threshold = def (x) { x >= 10 ? x : 0 }; ....}]\n" +
+                    "                         ^\n" +
+                    "[Line: 1, Column: 13]"));
+        }
+        try {
+            executeScript("a = [1,2;\n");
+            fail("Should throw CompileException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().equals("[Error: unbalanced braces [ ... ]]\n" +
+                    "[Near : {... a = [1,2; ....}]\n" +
+                    "                 ^\n" +
+                    "[Line: 1, Column: 5]"));
+        }
     }
 
     public void testUseClassImport() {

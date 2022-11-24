@@ -14,7 +14,7 @@ public class ErrorUtil {
 
   public static CompileException rewriteIfNeeded(CompileException caught, char[] outer, int outerCursor) {
     if (outer != caught.getExpr()) {
-      if (caught.getExpr().length <= caught.getCursor()) {
+      if (caught.getExpr().length > 0 && caught.getExpr().length <= caught.getCursor()) {
         caught.setCursor(caught.getExpr().length - 1);
       }
 
@@ -24,8 +24,13 @@ public class ErrorUtil {
 
       String outerStr = new String(outer);
 
-      int newCursor = outerStr.substring(outerStr.indexOf(new String(caught.getExpr())))
-          .indexOf(innerExpr);
+      int newCursor;
+      if (innerExpr.length() > 0) {
+        newCursor = outerStr.substring(outerStr.indexOf(new String(caught.getExpr())))
+                .indexOf(innerExpr);
+      } else {
+        newCursor = outerCursor;
+      }
 
       caught.setCursor(newCursor);
       }
