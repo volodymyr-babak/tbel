@@ -342,6 +342,20 @@ public class TbExpressionsTest extends TestCase {
         assertEquals(3, ((List<?>) res).get(2));
     }
 
+    public void testByteOperations() {
+        Object res = executeScript("var m = new byte[]{(byte)0x0F,(byte)0x02}; b = m[0] == 0x0F; b");
+        assertNotNull(res);
+        assertTrue(res instanceof Boolean);
+        assertTrue((Boolean) res);
+        res = executeScript("var a = 0x0F; b = 0x0A; c = a + b; c");
+        assertNotNull(res);
+        assertTrue(res instanceof Integer);
+        assertEquals(25, res);
+        res = executeScript("var a = (byte)0x0F; b = a << 24 >> 16; b");
+        assertNotNull(res);
+        assertEquals((byte)0x0F << 24 >> 16, res);
+    }
+
     public void testUnterminatedStatement() {
         Object res = executeScript("var a = \"A\";\n" +
                 "var b = \"B\"\n" +
@@ -373,6 +387,15 @@ public class TbExpressionsTest extends TestCase {
                     "[Near : {... a = [1,2; ....}]\n" +
                     "                 ^\n" +
                     "[Line: 1, Column: 5]"));
+        }
+        try {
+            executeScript("a = [1,2];\n function c(a) {\nvar b = 0;\nb += a[0].toInt();\nreturn b;}\n c(a);");
+            fail("Should throw CompileException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().equals("[Error: unable to resolve method: java.lang.Integer.toInt() [arglength=0]]\n" +
+                    "[Near : {... b += a[0].toInt(); ....}]\n" +
+                    "                 ^\n" +
+                    "[Line: 4, Column: 5]"));
         }
     }
 

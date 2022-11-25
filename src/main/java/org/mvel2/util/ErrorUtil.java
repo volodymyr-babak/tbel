@@ -31,6 +31,9 @@ public class ErrorUtil {
       } else {
         newCursor = outerCursor;
       }
+      if (newCursor == -1) {
+        newCursor = outerCursor;
+      }
 
       caught.setCursor(newCursor);
       }

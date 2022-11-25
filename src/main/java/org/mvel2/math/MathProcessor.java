@@ -64,7 +64,7 @@ public strictfp class MathProcessor {
       if (type2 == BIG_DECIMAL) {
         return doBigDecimalArithmetic((BigDecimal) val1, operation, (BigDecimal) val2, false, -1);
       }
-      if (type2 > 99) {
+      if (type2 >= 99) {
         return doBigDecimalArithmetic((BigDecimal) val1, operation, asBigDecimal(val2), false, -1);
       } else {
         return _doOperations(type1, val1, operation, type2, val2);
@@ -121,6 +121,9 @@ public strictfp class MathProcessor {
       case DataTypes.W_SHORT:
       case DataTypes.SHORT:
         return val.shortValue();
+      case DataTypes.W_BYTE:
+      case DataTypes.BYTE:
+        return val.byteValue();
       case DataTypes.BIG_DECIMAL:
         return new BigDecimal(val.doubleValue());
       case DataTypes.BIG_INTEGER:
@@ -226,12 +229,12 @@ public strictfp class MathProcessor {
   }
 
   private static boolean isNumericOperation(int type1, Object val1, int operation, int type2, Object val2) {
-    return (type1 > 99 && type2 > 99)
-        || (operation != ADD && (type1 > 99 || type2 > 99 || operation < LTHAN || operation > GETHAN) && isNumber(val1) && isNumber(val2));
+    return (type1 >= 99 && type2 >= 99)
+        || (operation != ADD && (type1 >= 99 || type2 >= 99 || operation < LTHAN || operation > GETHAN) && isNumber(val1) && isNumber(val2));
   }
 
   private static boolean isIntegerType(int type) {
-    return type == DataTypes.INTEGER || type == DataTypes.W_INTEGER || type == DataTypes.LONG || type == DataTypes.W_LONG;
+    return type == DataTypes.BYTE || type == DataTypes.W_BYTE || type == DataTypes.INTEGER || type == DataTypes.W_INTEGER || type == DataTypes.LONG || type == DataTypes.W_LONG;
   }
 
   private static Object doOperationNonNumeric(int type1, final Object val1, final int operation, final Object val2) {
@@ -410,6 +413,55 @@ public strictfp class MathProcessor {
           case BW_XOR:
             if (val2 instanceof Long) return (Integer) val1 ^ (Long) val2;
             return (Integer) val1 ^ (Integer) val2;
+        }
+
+      case DataTypes.BYTE:
+      case DataTypes.W_BYTE:
+        switch (operation) {
+          case ADD:
+            return toInteger(val1) + toInteger(val2);
+          case SUB:
+            return toInteger(val1) - toInteger(val2);
+          case DIV:
+            return toDouble(val1) / toInteger(val2);
+          case MULT:
+            return toInteger(val1) * toInteger(val2);
+          case POWER:
+            double d = Math.pow(toInteger(val1), toInteger(val2));
+            if (d > Integer.MAX_VALUE) return d;
+            else return (int) d;
+          case MOD:
+            return toInteger(val1) % toInteger(val2);
+          case GTHAN:
+            return val1 != null && val2 != null && toInteger(val1) > toInteger(val2);
+          case GETHAN:
+            return val1 != null && val2 != null && toInteger(val1) >= toInteger(val2);
+          case LTHAN:
+            return val1 != null && val2 != null && toInteger(val1) < toInteger(val2);
+          case LETHAN:
+            return val1 != null && val2 != null && toInteger(val1) <= toInteger(val2);
+          case EQUAL:
+            return val1 == null ? val2 == null : toInteger(val1) == toInteger(val2);
+          case NEQUAL:
+            return val1 == null ? val2 != null : toInteger(val1) != toInteger(val2);
+          case BW_AND:
+            if (val2 instanceof Long) return (Byte) val1 & (Long) val2;
+            return (Byte) val1 & (Integer) val2;
+          case BW_OR:
+            if (val2 instanceof Long) return (Byte) val1 | (Long) val2;
+            return (Byte) val1 | (Integer) val2;
+          case BW_SHIFT_LEFT:
+            if (val2 instanceof Long) return (Byte) val1 << (Long) val2;
+            return (Byte) val1 << (Integer) val2;
+          case BW_SHIFT_RIGHT:
+            if (val2 instanceof Long) return (Byte) val1 >> (Long) val2;
+            return (Byte) val1 >> (Integer) val2;
+          case BW_USHIFT_RIGHT:
+            if (val2 instanceof Long) return (Byte) val1 >>> (Long) val2;
+            return (Byte) val1 >>> (Integer) val2;
+          case BW_XOR:
+            if (val2 instanceof Long) return (Byte) val1 ^ (Long) val2;
+            return (Byte) val1 ^ (Integer) val2;
         }
 
       case DataTypes.SHORT:

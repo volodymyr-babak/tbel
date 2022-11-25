@@ -48,7 +48,7 @@ public interface DataTypes {
   public static final int W_DOUBLE = 109;
 
   public static final int W_CHAR = 112;
-  public static final int W_BYTE = 113;
+  public static final int W_BYTE = 99;
 
   public static final int BIG_DECIMAL = 110;
   public static final int BIG_INTEGER = 111;
