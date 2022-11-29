@@ -12,6 +12,53 @@ public class SandboxedParserContext extends ParserContext {
         super(sandboxedParserConfiguration);
     }
 
+    public SandboxedParserContext(SandboxedParserConfiguration sandboxedParserConfiguration, ParserContext parent, boolean functionContext) {
+        super(sandboxedParserConfiguration, parent, functionContext);
+    }
+
+    @Override
+    public ParserContext createFunctionContext(ParserConfiguration parserConfiguration) {
+        return new SandboxedParserContext((SandboxedParserConfiguration) parserConfiguration, this, true);
+    }
+
+    @Override
+    protected ParserContext createNewParserContext(ParserConfiguration parserConfiguration) {
+        return new SandboxedParserContext((SandboxedParserConfiguration) parserConfiguration);
+    }
+
+    @Override
+    protected ParserContext prepareColoringSubcontext(ParserConfiguration parserConfiguration, ParserContext _parent) {
+        return new SandboxedParserContext((SandboxedParserConfiguration) parserConfiguration) {
+            @Override
+            public void addVariable(String name, Class type) {
+                if ((_parent.variables != null && _parent.variables.containsKey(name))
+                        || (_parent.inputs != null && _parent.inputs.containsKey(name))) {
+                    this.variablesEscape = true;
+                }
+                super.addVariable(name, type);
+            }
+
+            @Override
+            public void addVariable(String name, Class type, boolean failIfNewAssignment) {
+                if ((_parent.variables != null && _parent.variables.containsKey(name))
+                        || (_parent.inputs != null && _parent.inputs.containsKey(name))) {
+                    this.variablesEscape = true;
+                }
+                super.addVariable(name, type, failIfNewAssignment);
+            }
+
+            @Override
+            public Class getVarOrInputType(String name) {
+                if ((_parent.variables != null && _parent.variables.containsKey(name))
+                        || (_parent.inputs != null && _parent.inputs.containsKey(name))) {
+                    this.variablesEscape = true;
+                }
+
+                return super.getVarOrInputType(name);
+            }
+        };
+    }
+
     @Override
     public boolean hasLiteral(String property) {
         return SandboxedParserConfiguration.literals.containsKey(property);
