@@ -2,6 +2,7 @@ package org.mvel2;
 
 import org.mvel2.compiler.AbstractParser;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -12,15 +13,15 @@ import java.util.Set;
 public class SandboxedClassLoader extends URLClassLoader {
 
     protected static final Set<String> forbiddenClassLiterals =
-            Set.of("System",  "Runtime", "Class", "ClassLoader", "Thread", "Compiler", "ThreadLocal", "SecurityManager");
+            Set.of("System",  "Runtime", "Class", "ClassLoader", "Thread", "Compiler", "ThreadLocal", "SecurityManager", "Array");
 
     protected static final Set<Method> forbiddenMethods = Set.of(getMethod(Object.class, "getClass"),
             getMethod(Class.class, "getClassLoader"));
 
-    static Method getMethod(Class<?> cls, String method) {
+    static Method getMethod(Class<?> cls, String method, Class<?>... parameterTypes) {
         Method m = null;
         try {
-            m = cls.getMethod(method);
+            m = cls.getMethod(method, parameterTypes);
         } catch (Exception e) {
             //empty
         }

@@ -4,8 +4,8 @@ import junit.framework.Assert;
 import junit.framework.TestCase;
 import org.mvel2.CompileException;
 import org.mvel2.ExecutionContext;
+import org.mvel2.ParserContext;
 import org.mvel2.SandboxedParserConfiguration;
-import org.mvel2.SandboxedParserContext;
 import org.mvel2.ScriptMemoryOverflowException;
 import org.mvel2.ScriptRuntimeException;
 import org.mvel2.execution.ExecutionArrayList;
@@ -37,7 +37,13 @@ public class TbExpressionsTest extends TestCase {
     protected void setUp() throws Exception {
         OptimizerFactory.setDefaultOptimizer(OptimizerFactory.SAFE_REFLECTIVE);
         super.setUp();
-        this.parserConfig = new SandboxedParserConfiguration();
+        this.parserConfig = ParserContext.enableSandboxedMode();
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        ParserContext.disableSandboxedMode();
     }
 
     public void testCreateSingleValueArray() {
@@ -224,7 +230,50 @@ public class TbExpressionsTest extends TestCase {
         }
     }
 
-    public void testForbidCustomObjects() throws Exception {
+    public void testMethodArgumentsLength() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        int argsLimit = 5;
+        try {
+            executeScript("var s = '%s'; for (var i = 0; i < 20; i++) { s = s + s; }\n\n" +
+                              "return '\\n12Result is :\\n' + String.format(s, s, s, s, s, s, s, " +
+                    "s, s, s, s);", new HashMap(), new ExecutionContext(parserConfig, memoryLimit, argsLimit));
+            fail("Should throw CompileException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("Maximum method arguments count overflow"));
+            assertTrue(e.getMessage().contains("" + argsLimit));
+        }
+    }
+
+    public void testMethodInvocationForStringRepeat() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("'a'.repeat(Integer.MAX_VALUE-100)", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Max string length overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit / 2));
+        }
+    }
+
+    public void testMethodInvocationForStringReplace() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("var repl = 'a'.repeat(5 * 1024 * 1024 / 100 + 1); 'abc'.replace('a', repl);", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Max replacement length overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit / 100));
+        }
+        try {
+            executeScript("var repl = 'a'.repeat(5 * 1024 * 1024 / 100 + 1); 'abc'.replaceAll('a', repl);", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Max replacement length overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit / 100));
+        }
+    }
+
+    public void testForbidCustomObjects() {
         try {
             executeScript("m = new java.util.HashMap(); m");
             fail("Should throw ScriptRuntimeException");
@@ -235,7 +284,27 @@ public class TbExpressionsTest extends TestCase {
 
     public void testForbiddenClassAccess() {
         try {
+            executeScript("\n\nClass c;");
+            fail("Should throw CompileException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unknown class or illegal statement: Class"));
+        }
+        try {
             executeScript("m = {5}; System.exit(-1); m");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
+        }
+
+        try {
+            executeScript("m = {5}; for (int i=0;i<10;i++) {System.exit(-1);}; m");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
+        }
+
+        try {
+            executeScript("m = {5}; function test() {System.exit(-1);}; test(); m");
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
             assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
@@ -267,6 +336,13 @@ public class TbExpressionsTest extends TestCase {
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
             assertTrue(e.getMessage().contains("unable to resolve method: getClass()"));
+        }
+
+        try {
+            executeScript("Array.newInstance(Object, 1000, 1000, 1000, 1000);");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("unresolvable property or identifier: Array"));
         }
 
         try {
@@ -532,7 +608,7 @@ public class TbExpressionsTest extends TestCase {
     }
 
     private Object executeScript(String ex, Map vars, ExecutionContext executionContext) {
-        Serializable compiled = compileExpression(ex, new SandboxedParserContext(this.parserConfig));
+        Serializable compiled = compileExpression(ex, new ParserContext());
         this.currentExecutionContext = executionContext;
         return executeTbExpression(compiled, this.currentExecutionContext, vars);
     }

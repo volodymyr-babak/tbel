@@ -244,6 +244,10 @@ public class ASTNode implements Cloneable, Serializable {
     return literal;
   }
 
+  public String getStatementString() {
+    return (literal == null || literal instanceof ParserContext) ? toString() : literal.toString();
+  }
+
   public void storeInLiteralRegister(Object o) {
     this.literal = o;
   }

@@ -1522,11 +1522,11 @@ public class AbstractParser implements Parser, Serializable {
           }
         }
         else {
-          throw new CompileException("unknown class or illegal statement: " + lastNode.getLiteralValue(), expr, cursor);
+          throw new CompileException("unknown class or illegal statement: " + lastNode.getStatementString(), expr, cursor);
         }
       }
       else {
-        throw new CompileException("unknown class or illegal statement: " + lastNode.getLiteralValue(), expr, cursor);
+        throw new CompileException("unknown class or illegal statement: " + lastNode.getStatementString(), expr, cursor);
       }
 
       skipWhitespace();

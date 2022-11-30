@@ -24,6 +24,7 @@ import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
 import org.mvel2.PropertyAccessException;
 import org.mvel2.ScriptMemoryOverflowException;
+import org.mvel2.ScriptRuntimeException;
 import org.mvel2.ast.FunctionInstance;
 import org.mvel2.ast.TypeDescriptor;
 import org.mvel2.compiler.Accessor;
@@ -481,6 +482,9 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
     }
     catch (ScriptMemoryOverflowException e) {
       throw e;
+    }
+    catch (ScriptRuntimeException e) {
+      throw new CompileException(e.getMessage(), this.expr, start, e);
     }
     catch (NullPointerException e) {
       throw new PropertyAccessException("null pointer: " + new String(expr, start, length), this.expr, this.st, e, pCtx);
@@ -1159,7 +1163,11 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
 
     Method method = getWidenedTarget(cls, m);
     args = updateArgsWithExecutionContextIfNeeded(parameterTypes, args, this.ctx);
-    Object o = ctx != null ? method.invoke(ctx, normalizeArgsForVarArgs(parameterTypes, args, m.isVarArgs())) : null;
+    Object o = null;
+    if (ctx != null) {
+      args = checkInvocation(method, ctx, args);
+      o = method.invoke(ctx, normalizeArgsForVarArgs(parameterTypes, args, m.isVarArgs()));
+    }
 
     if (hasNullMethodHandler()) {
       addAccessorNode(new MethodAccessorNH(method, (ExecutableStatement[]) es, getNullMethodHandler()));
@@ -1408,5 +1416,13 @@ public class ReflectiveAccessorOptimizer extends AbstractOptimizer implements Ac
       className = cls.getName() + ".";
     }
     return className;
+  }
+
+  private Object[] checkInvocation(Method method, Object ctx, Object[] args) {
+    if (this.thisRef instanceof ExecutionContext) {
+      return ((ExecutionContext)this.thisRef).checkInvocation(method, ctx, args);
+    } else {
+      return args;
+    }
   }
 }

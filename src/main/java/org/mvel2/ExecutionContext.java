@@ -2,9 +2,11 @@ package org.mvel2;
 
 import org.mvel2.execution.ExecutionArrayList;
 import org.mvel2.execution.ExecutionObject;
+import org.mvel2.util.TriFunction;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -26,6 +29,8 @@ public class ExecutionContext implements Serializable {
 
     private final SandboxedParserConfiguration parserConfig;
     private final long maxAllowedMemory;
+
+    private final int maxAllowedMethodArgs;
 
     private int stackLevel = 0;
 
@@ -40,8 +45,13 @@ public class ExecutionContext implements Serializable {
     }
 
     public ExecutionContext(SandboxedParserConfiguration parserConfig, long maxAllowedMemory) {
+        this(parserConfig, maxAllowedMemory, 10);
+    }
+
+    public ExecutionContext(SandboxedParserConfiguration parserConfig, long maxAllowedMemory, int maxAllowedMethodArgs) {
         this.parserConfig = parserConfig;
         this.maxAllowedMemory = maxAllowedMemory;
+        this.maxAllowedMethodArgs = maxAllowedMethodArgs;
     }
 
     public int nextId() {
@@ -52,6 +62,17 @@ public class ExecutionContext implements Serializable {
         if (stopped) {
             throw new ScriptExecutionStoppedException("Script execution is stopped!");
         }
+    }
+
+    public Object[] checkInvocation(Method method, Object ctx, Object[] args) {
+        if (args != null && maxAllowedMethodArgs > 0 && args.length > maxAllowedMethodArgs) {
+            throw new ScriptRuntimeException("Maximum method arguments count overflow (" + args.length + " > " + maxAllowedMethodArgs + ")!");
+        }
+        TriFunction<ExecutionContext, Object, Object[], Object[]> invocationChecker = this.parserConfig.getMethodInvocationChecker(method);
+        if (invocationChecker != null) {
+            return invocationChecker.apply(this, ctx, args);
+        }
+        return args;
     }
 
     public void stop() {
@@ -154,6 +175,10 @@ public class ExecutionContext implements Serializable {
 
     public long getMemorySize() {
         return memorySize;
+    }
+
+    public long getMaxAllowedMemory() {
+        return maxAllowedMemory;
     }
 
     private void checkMemoryLimit() {

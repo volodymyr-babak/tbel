@@ -58,6 +58,10 @@ import org.mvel2.util.ReflectionUtil;
  * </code></pre>
  */
 public class ParserContext implements Serializable {
+
+  private static boolean sandboxedMode = false;
+  private static SandboxedParserConfiguration sandboxedParserConfiguration;
+
   private String sourceFile;
 
   private int lineCount = 1;
@@ -108,8 +112,23 @@ public class ParserContext implements Serializable {
 
   private Map<String, Object> literals;
 
+  public static SandboxedParserConfiguration enableSandboxedMode() {
+    sandboxedMode = true;
+    sandboxedParserConfiguration = new SandboxedParserConfiguration();
+    return sandboxedParserConfiguration;
+  }
+
+  public static void disableSandboxedMode() {
+    sandboxedMode = false;
+    sandboxedParserConfiguration = null;
+  }
+
   public ParserContext() {
-    parserConfiguration = new ParserConfiguration();
+    if (sandboxedMode) {
+      parserConfiguration = sandboxedParserConfiguration;
+    } else {
+      parserConfiguration = new ParserConfiguration();
+    }
   }
 
   public ParserContext(boolean debugSymbols) {
@@ -123,7 +142,11 @@ public class ParserContext implements Serializable {
   }
 
   public ParserContext(ParserConfiguration parserConfiguration) {
-    this.parserConfiguration = parserConfiguration;
+    if (sandboxedMode) {
+      this.parserConfiguration = sandboxedParserConfiguration;
+    } else {
+      this.parserConfiguration = parserConfiguration;
+    }
   }
 
   public ParserContext(ParserConfiguration parserConfiguration, Object evaluationContext) {
@@ -139,7 +162,11 @@ public class ParserContext implements Serializable {
 
   public ParserContext(Map<String, Object> imports, Map<String, Interceptor> interceptors, String sourceFile) {
     this.sourceFile = sourceFile;
-    this.parserConfiguration = new ParserConfiguration(imports, interceptors);
+    if (sandboxedMode) {
+      this.parserConfiguration = sandboxedParserConfiguration;
+    } else {
+      this.parserConfiguration = new ParserConfiguration(imports, interceptors);
+    }
   }
 
   public ParserContext createSubcontext() {
@@ -405,12 +432,17 @@ public class ParserContext implements Serializable {
    * @param cls The instance of the <tt>Class</tt> which represents the imported class.
    */
   public void addImport(Class cls) {
+    if (sandboxedMode) {
+      throw new UnsupportedOperationException("Import is forbidden!");
+    }
     addImport(cls.getSimpleName(), cls);
   }
 
   public void addImport(Proto proto) {
+    if (sandboxedMode) {
+      throw new UnsupportedOperationException("Import is forbidden!");
+    }
     parserConfiguration.addImport(proto.getName(), proto);
-
   }
 
   /**
@@ -427,6 +459,9 @@ public class ParserContext implements Serializable {
    * @param cls  The instance of the <tt>Class</tt> which represents the imported class.
    */
   public void addImport(String name, Class cls) {
+    if (sandboxedMode) {
+      throw new UnsupportedOperationException("Import is forbidden!");
+    }
     parserConfiguration.addImport(name, cls);
     //      addInput(name, cls);
   }
@@ -443,6 +478,9 @@ public class ParserContext implements Serializable {
    * @param method The instance of <tt>Method</tt> which represents the static import.
    */
   public void addImport(String name, Method method) {
+    if (sandboxedMode) {
+      throw new UnsupportedOperationException("Import is forbidden!");
+    }
     addImport(name, new MethodStub(method));
     //   addInput(name, MethodStub.class);
   }
@@ -455,6 +493,9 @@ public class ParserContext implements Serializable {
    * @see #addImport(String, org.mvel2.util.MethodStub)
    */
   public void addImport(String name, MethodStub method) {
+    if (sandboxedMode) {
+      throw new UnsupportedOperationException("Import is forbidden!");
+    }
     parserConfiguration.addImport(name, method);
   }
 
@@ -928,15 +969,27 @@ public class ParserContext implements Serializable {
   }
 
   public boolean hasLiteral(String property) {
-    return this.literals().containsKey(property);
+    if (sandboxedMode) {
+      return SandboxedParserConfiguration.literals.containsKey(property);
+    } else {
+      return this.literals().containsKey(property);
+    }
   }
 
   public Object getLiteral(String property) {
-    return this.literals().get(property);
+    if (sandboxedMode) {
+      return SandboxedParserConfiguration.literals.get(property);
+    } else {
+      return this.literals().get(property);
+    }
   }
 
   public void setLiterals(Map<String, Object> literals) {
-    this.literals = literals;
+    if (sandboxedMode) {
+      // Do nothing
+    } else {
+      this.literals = literals;
+    }
   }
 
   public ArrayList<String> getIndexedInputs() {
@@ -1116,6 +1169,10 @@ public class ParserContext implements Serializable {
   }
 
   public boolean isMethodAllowed(Method method) {
-    return true;
+    if (sandboxedMode) {
+      return !SandboxedClassLoader.forbiddenMethods.contains(method);
+    } else {
+      return true;
+    }
   }
 }
