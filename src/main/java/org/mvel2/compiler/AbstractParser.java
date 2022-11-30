@@ -319,9 +319,7 @@ public class AbstractParser implements Parser, Serializable {
       /**
        * Skip any whitespace currently under the starting point.
        */
-      if (expr[cursor] == '\n' && lastNode != null && !(lastNode instanceof EndOfStatement)) {
-        return lastNode = new EndOfStatement(pCtx);
-      }
+
       skipWhitespace();
 
       /**
@@ -511,7 +509,7 @@ public class AbstractParser implements Parser, Serializable {
                   else {
                     name = new String(expr, st, end - st);
                     if (pCtx != null && (idx = pCtx.variableIndexOf(name)) != -1) {
-                      splitAccumulator.add(lastNode = new IndexedDeclTypedVarNode(idx, st, end - st, Object.class, pCtx));
+                      splitAccumulator.add(lastNode = new IndexedDeclTypedVarNode(idx, expr, st, end - st, Object.class, pCtx));
                       pCtx.addLocalDeclaration(name);
                     }
                     else {
@@ -1904,7 +1902,6 @@ public class AbstractParser implements Parser, Serializable {
         case ',':
         case ';':
         case '}':
-        case '\n':
           return;
       }
       cursor++;

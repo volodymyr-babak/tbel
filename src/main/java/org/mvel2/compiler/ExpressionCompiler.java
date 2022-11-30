@@ -51,6 +51,7 @@ import static org.mvel2.util.CompilerTools.finalizePayload;
 import static org.mvel2.util.CompilerTools.signNumber;
 import static org.mvel2.util.ParseTools.subCompileExpression;
 import static org.mvel2.util.ParseTools.unboxPrimitive;
+import static org.mvel2.util.ParseTools.validateStatements;
 
 /**
  * This is the main MVEL compiler.
@@ -65,7 +66,7 @@ public class ExpressionCompiler extends AbstractParser {
   public CompiledExpression compile() {
     try {
       this.debugSymbols = pCtx.isDebugSymbols();
-      return _compile();
+      return (CompiledExpression) validateStatements(this.expr, _compile());
     }
     finally {
       if (pCtx.isFatalError()) {

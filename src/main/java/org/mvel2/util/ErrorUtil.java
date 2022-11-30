@@ -13,13 +13,14 @@ public class ErrorUtil {
   private static final Logger LOG = Logger.getLogger(ErrorUtil.class.getName());
 
   public static CompileException rewriteIfNeeded(CompileException caught, char[] outer, int outerCursor) {
-    if (outer != caught.getExpr()) {
-      if (caught.getExpr().length > 0 && caught.getExpr().length <= caught.getCursor()) {
-        caught.setCursor(caught.getExpr().length - 1);
+    if (outer != null && outer != caught.getExpr()) {
+      char[] inner = caught.getExpr() != null ? caught.getExpr() : new char[0];
+      if (inner.length > 0 && inner.length <= caught.getCursor()) {
+        caught.setCursor(inner.length - 1);
       }
 
       try {
-      String innerExpr = new String(caught.getExpr()).substring(caught.getCursor());
+      String innerExpr = new String(inner).substring(caught.getCursor());
       caught.setExpr(outer);
 
       String outerStr = new String(outer);

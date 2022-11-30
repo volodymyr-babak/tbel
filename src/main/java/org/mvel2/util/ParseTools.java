@@ -53,18 +53,27 @@ import org.mvel2.Operator;
 import org.mvel2.OptimizationFailure;
 import org.mvel2.ParserContext;
 import org.mvel2.ast.ASTNode;
+import org.mvel2.ast.AssertNode;
+import org.mvel2.ast.BooleanNode;
+import org.mvel2.ast.DeclTypedVarNode;
+import org.mvel2.ast.EndOfStatement;
+import org.mvel2.ast.HasStatement;
+import org.mvel2.ast.IndexedDeclTypedVarNode;
+import org.mvel2.ast.LineLabel;
+import org.mvel2.ast.OperatorNode;
+import org.mvel2.ast.TypedVarNode;
 import org.mvel2.compiler.AbstractParser;
 import org.mvel2.compiler.BlankLiteral;
 import org.mvel2.compiler.CompiledExpression;
 import org.mvel2.compiler.ExecutableAccessor;
 import org.mvel2.compiler.ExecutableAccessorSafe;
 import org.mvel2.compiler.ExecutableLiteral;
+import org.mvel2.compiler.ExecutableStatement;
 import org.mvel2.compiler.ExpressionCompiler;
 import org.mvel2.integration.VariableResolverFactory;
 import org.mvel2.integration.impl.ClassImportResolverFactory;
 import org.mvel2.math.MathProcessor;
 
-import static java.lang.Class.forName;
 import static java.lang.Double.parseDouble;
 import static java.lang.String.valueOf;
 import static java.lang.System.arraycopy;
@@ -2166,6 +2175,70 @@ public class ParseTools {
     }
 
     return compiled;
+  }
+
+  public static ExecutableStatement validateStatements(final char[] outer, final ExecutableStatement statement) {
+    try {
+      boolean lastEndOfStatement = true;
+      ASTNode node = getNodeFromStatement(statement);
+      if (node != null) {
+        ASTNode prevNode = node;
+        do {
+          if (node instanceof EndOfStatement ||
+              node instanceof OperatorNode ||
+              node instanceof LineLabel ||
+              node instanceof AssertNode) {
+            lastEndOfStatement = true;
+          } else if (!lastEndOfStatement) {
+            if ((isDeclVarNode(prevNode) && !isDeclVarNode(node)) || !isDeclVarNode(node)) {
+              ASTNode target = getExpressionNode(prevNode);
+              throw new CompileException("Unterminated statement!", target.getExpr(), target.getStart());
+            }
+          } else {
+            if (node instanceof HasStatement) {
+              ExecutableStatement innerStatement = ((HasStatement) node).getStatement();
+              validateStatements(node.getExpr(), innerStatement);
+            }
+            lastEndOfStatement = false;
+          }
+          prevNode = node;
+          node = node.nextASTNode;
+        } while (node != null);
+      }
+      return statement;
+    } catch (CompileException c) {
+      throw ErrorUtil.rewriteIfNeeded(c, outer, 0);
+    }
+  }
+
+  private static boolean isDeclVarNode(ASTNode node) {
+    return (node instanceof DeclTypedVarNode || node instanceof IndexedDeclTypedVarNode) || node instanceof TypedVarNode;
+  }
+
+  private static ASTNode getNodeFromStatement(ExecutableStatement statement) {
+    if (statement instanceof CompiledExpression) {
+      return ((CompiledExpression)statement).getFirstNode();
+    } else if (statement instanceof ExecutableAccessor) {
+      return ((ExecutableAccessor)statement).getNode();
+    }
+    return null;
+  }
+
+  private static ASTNode getExpressionNode(ASTNode node) {
+    if (node.getExpr() == null) {
+      if (node instanceof BooleanNode) {
+        ASTNode right = ((BooleanNode)node).getRight();
+        if (right.getExpr() != null) {
+          return right;
+        } else {
+          ASTNode left = ((BooleanNode)node).getLeft();
+          if (left.getExpr() != null) {
+            return left;
+          }
+        }
+      }
+    }
+    return node;
   }
 
   private static Serializable _optimizeTree(final CompiledExpression compiled) {

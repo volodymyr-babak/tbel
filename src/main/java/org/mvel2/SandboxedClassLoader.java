@@ -13,7 +13,7 @@ import java.util.Set;
 public class SandboxedClassLoader extends URLClassLoader {
 
     protected static final Set<String> forbiddenClassLiterals =
-            Set.of("System",  "Runtime", "Class", "ClassLoader", "Thread", "Compiler", "ThreadLocal", "SecurityManager", "Array");
+            Set.of("System",  "Runtime", "Class", "ClassLoader", "Thread", "Compiler", "ThreadLocal", "SecurityManager", "Array", "StringBuffer", "StringBuilder");
 
     protected static final Set<Method> forbiddenMethods = Set.of(getMethod(Object.class, "getClass"),
             getMethod(Class.class, "getClassLoader"));

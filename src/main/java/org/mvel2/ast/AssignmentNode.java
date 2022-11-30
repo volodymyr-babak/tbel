@@ -33,7 +33,7 @@ import static org.mvel2.util.ParseTools.*;
 /**
  * @author Christopher Brock
  */
-public class AssignmentNode extends ASTNode implements Assignment {
+public class AssignmentNode extends ASTNode implements Assignment, HasStatement {
   private String assignmentVar;
   private String varName;
   private transient CompiledAccExpression accExpr;
@@ -162,5 +162,10 @@ public class AssignmentNode extends ASTNode implements Assignment {
   @Override
   public String toString() {
     return assignmentVar + " = " + new String(expr, start, offset);
+  }
+
+  @Override
+  public ExecutableStatement getStatement() {
+    return statement;
   }
 }

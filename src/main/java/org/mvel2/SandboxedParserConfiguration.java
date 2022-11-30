@@ -44,6 +44,18 @@ public class SandboxedParserConfiguration extends ParserConfiguration {
                 }
                 return args;
             });
+            registerMethodInvocationChecker(String.class.getMethod("concat", String.class), (ctx, value, args) -> {
+                if (ctx.getMaxAllowedMemory() > 0) {
+                    if (args != null && args.length > 0 && args[0] instanceof String) {
+                        String str = (String)args[0];
+                        int stringSize = ((String) value).length() + str.length();
+                        if (stringSize > ctx.getMaxAllowedMemory() / 2) {
+                            throw new ScriptMemoryOverflowException("Max string length overflow (" + stringSize + " > " + ctx.getMaxAllowedMemory() / 2 + ")!");
+                        }
+                    }
+                }
+                return args;
+            });
             registerMethodInvocationChecker(String.class.getMethod("replace", CharSequence.class, CharSequence.class), (ctx, value, args) -> {
                 if (ctx.getMaxAllowedMemory() > 0) {
                     if (args != null && args.length > 1 && args[1] instanceof CharSequence) {

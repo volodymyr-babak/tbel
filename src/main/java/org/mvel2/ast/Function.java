@@ -37,7 +37,7 @@ import static org.mvel2.util.ParseTools.subCompileExpression;
 
 
 @SuppressWarnings({"unchecked"})
-public class Function extends ASTNode implements Safe {
+public class Function extends ASTNode implements Safe, HasStatement {
   protected String name;
   protected ExecutableStatement compiledBlock;
 
@@ -230,6 +230,11 @@ public class Function extends ASTNode implements Safe {
 
   public String toString() {
     return "FunctionDef:" + (name == null ? "Anonymous" : name);
+  }
+
+  @Override
+  public ExecutableStatement getStatement() {
+    return compiledBlock;
   }
 }
 

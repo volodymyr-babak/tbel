@@ -93,10 +93,11 @@ public class TbExpressionsTest extends TestCase {
         Object res = executeScript("var m = 25; " +
                                    "function testFunc(a) {" +
                                    "   function testFunc3(e) {" +
-                                   "       var m = e + 5\n " +
+                                   "       var m;" +
+                                   "       m = e + 5\n; " +
                                    "       return m" +
                                    "   };" +
-                                   "   var t = 2\n" +
+                                   "   var t = 2;\n" +
                                    "   m = a * t;" +
                                    "   return testFunc3(testFunc2(m + t));" +
                                    "}" +
@@ -106,8 +107,8 @@ public class TbExpressionsTest extends TestCase {
                                    "function testFunc4(m) {" +
                                    "   return m * 2;" +
                                    "}" +
-                                   "var m2 = m + testFunc(m) \n" +
-                                   "return testFunc4(m2);");
+                                   "var m2 = m + testFunc(m); \n" +
+                                   "return testFunc4(m2)");
         assertTrue(res instanceof Integer);
         assertEquals((25 + ((25 * 2 + 2) * 3) + 5) * 2, res);
     }
@@ -255,6 +256,17 @@ public class TbExpressionsTest extends TestCase {
         }
     }
 
+    public void testMethodInvocationForStringConcat() {
+        long memoryLimit = 5 * 1024 * 1024; // 5MB
+        try {
+            executeScript("var toConcat = 'a'.repeat(5 * 1024 * 1024 / 2 - 'abc'.length() + 1); 'abc'.concat(toConcat);", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
+            fail("Should throw ScriptMemoryOverflowException");
+        } catch (ScriptMemoryOverflowException e) {
+            assertTrue(e.getMessage().contains("Max string length overflow"));
+            assertTrue(e.getMessage().contains("" + memoryLimit / 2));
+        }
+    }
+
     public void testMethodInvocationForStringReplace() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
@@ -283,6 +295,34 @@ public class TbExpressionsTest extends TestCase {
     }
 
     public void testForbiddenClassAccess() {
+        try {
+            executeScript("new StringBuffer();");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("could not resolve class: StringBuffer"));
+        }
+
+        try {
+            executeScript("new java.lang.StringBuffer();");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("could not resolve class: java.lang.StringBuffer"));
+        }
+
+        try {
+            executeScript("new StringBuilder();");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("could not resolve class: StringBuilder"));
+        }
+
+        try {
+            executeScript("new java.lang.StringBuilder();");
+            fail("Should throw PropertyAccessException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().contains("could not resolve class: java.lang.StringBuilder"));
+        }
+
         try {
             executeScript("\n\nClass c;");
             fail("Should throw CompileException");
@@ -434,14 +474,37 @@ public class TbExpressionsTest extends TestCase {
 
     public void testUnterminatedStatement() {
         Object res = executeScript("var a = \"A\";\n" +
-                "var b = \"B\"\n" +
-                "var c = \"C\"\n" +
-                "result = a + b\n" +
-                "result = c\n\n" +
+                "var b = \"B\"\n;" +
+                "var c = \"C\"\n;" +
+                "result = a + b\n;" +
+                "result = c\t\n;\n" +
                 "{msg: result, \n\nmetadata: {}, msgType: ''}");
         assertNotNull(res);
         assertTrue(res instanceof Map);
         assertEquals("C", ((Map<?, ?>) res).get("msg"));
+
+        try {
+            executeScript("var a = \"A\";\n" +
+                    "var b = \"B\"\n;" +
+                    "var c = \"C\"\n;" +
+                    "result = a + b\n;" +
+                    "result = c\n\n" +
+                    "{msg: result, \n\nmetadata: {}, msgType: ''}");
+            fail("Should throw CompileException");
+        } catch (CompileException e) {
+            assertTrue(e.getMessage().equals("[Error: Unterminated statement!]\n" +
+                    "[Near : {... ;result = c ....}]\n" +
+                    "                       ^\n" +
+                    "[Line: 5, Column: 11]"));
+        }
+    }
+
+    public void testStringTermination() {
+        Object res = executeScript("var c = 'abc' + \n" +
+                "'def1' + ('a' + 'b') + \n " +
+                "'def2';\n c");
+        assertNotNull(res);
+        assertEquals("abcdef1abdef2", res);
     }
 
     public void testRuntimeAndCompileErrors() {
