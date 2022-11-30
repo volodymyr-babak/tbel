@@ -65,7 +65,7 @@ public class Function extends ASTNode implements Safe {
 
     //pCtx.declareFunction(this);
 
-    ParserContext ctx = pCtx.createFunctionContext(pCtx.getParserConfiguration());
+    ParserContext ctx = new ParserContext(pCtx.getParserConfiguration(), pCtx, true);
 
     if (!pCtx.isFunctionContext()) {
       singleton = true;

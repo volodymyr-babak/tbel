@@ -147,32 +147,10 @@ public class TbExpressionsTest extends TestCase {
         }
     }
 
-    public void testMemoryOverflowVariable2() {
-        long memoryLimit = 5 * 1024 * 1024; // 5MB
-        try {
-            executeScript("t = 'abc'; for (int i=0;i<100; i++) { t  += t}; t", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
-            fail("Should throw ScriptMemoryOverflowException");
-        } catch (ScriptMemoryOverflowException e) {
-            assertTrue(e.getMessage().contains("Script memory overflow"));
-            assertTrue(e.getMessage().contains("" + memoryLimit));
-        }
-    }
-
     public void testMemoryOverflowInnerVariable() {
         long memoryLimit = 5 * 1024 * 1024; // 5MB
         try {
             executeScript("doMemoryOverflow(); function doMemoryOverflow() { var t = 'abc'; while(true) { t  += t}; } ", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
-            fail("Should throw ScriptMemoryOverflowException");
-        } catch (ScriptMemoryOverflowException e) {
-            assertTrue(e.getMessage().contains("Script memory overflow"));
-            assertTrue(e.getMessage().contains("" + memoryLimit));
-        }
-    }
-
-    public void testMemoryOverflowInnerVariable2() {
-        long memoryLimit = 5 * 1024 * 1024; // 5MB
-        try {
-            executeScript("doMemoryOverflow(); function doMemoryOverflow() { var t = 'abc'; for (int i=0;i<100; i++) { t  += t}; } ", new HashMap(), new ExecutionContext(parserConfig, memoryLimit));
             fail("Should throw ScriptMemoryOverflowException");
         } catch (ScriptMemoryOverflowException e) {
             assertTrue(e.getMessage().contains("Script memory overflow"));
@@ -258,27 +236,6 @@ public class TbExpressionsTest extends TestCase {
     public void testForbiddenClassAccess() {
         try {
             executeScript("m = {5}; System.exit(-1); m");
-            fail("Should throw PropertyAccessException");
-        } catch (CompileException e) {
-            assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
-        }
-
-        try {
-            executeScript("m = {5}; for (int i=0;i<10; i++) {System.exit(-1);} m");
-            fail("Should throw PropertyAccessException");
-        } catch (CompileException e) {
-            assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
-        }
-
-        try {
-            executeScript("m = {5}; while(true) {\n System.exit(-1); \n } m");
-            fail("Should throw PropertyAccessException");
-        } catch (CompileException e) {
-            assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));
-        }
-
-        try {
-            executeScript("m = {5}; function badFunction() {System.exit(-1);}; badFunction(); m ");
             fail("Should throw PropertyAccessException");
         } catch (CompileException e) {
             assertTrue(e.getMessage().contains("unresolvable property or identifier: System"));

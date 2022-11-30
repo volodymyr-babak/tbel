@@ -74,8 +74,8 @@ public class ParserContext implements Serializable {
   private ArrayList<String> localDeclarations;
   private ArrayList<Set<String>> variableVisibility;
 
-  protected HashMap<String, Class> variables;
-  protected Map<String, Class> inputs;
+  private HashMap<String, Class> variables;
+  private Map<String, Class> inputs;
 
   private transient HashMap<String, Map<String, Type>> typeParameters;
   private transient Type[] lastTypeParameters;
@@ -143,7 +143,7 @@ public class ParserContext implements Serializable {
   }
 
   public ParserContext createSubcontext() {
-    ParserContext ctx = createNewParserContext(parserConfiguration);
+    ParserContext ctx = new ParserContext(parserConfiguration);
     ctx.sourceFile = sourceFile;
     ctx.parent = this;
 
@@ -177,20 +177,16 @@ public class ParserContext implements Serializable {
     return ctx;
   }
 
-  public ParserContext createFunctionContext(ParserConfiguration parserConfiguration) {
-    return new ParserContext(parserConfiguration, this, true);
-  }
+  public ParserContext createColoringSubcontext() {
+    if (parent == null) {
+      throw new RuntimeException("create a subContext first");
+    }
 
-  protected ParserContext createNewParserContext(ParserConfiguration parserConfiguration) {
-    return new ParserContext(parserConfiguration);
-  }
-
-  protected ParserContext prepareColoringSubcontext(ParserConfiguration parserConfiguration, ParserContext _parent) {
-    return new ParserContext(parserConfiguration) {
+    ParserContext ctx = new ParserContext(parserConfiguration) {
       @Override
       public void addVariable(String name, Class type) {
-        if ((_parent.variables != null && _parent.variables.containsKey(name))
-                || (_parent.inputs != null && _parent.inputs.containsKey(name))) {
+        if ((parent.variables != null && parent.variables.containsKey(name))
+            || (parent.inputs != null && parent.inputs.containsKey(name))) {
           this.variablesEscape = true;
         }
         super.addVariable(name, type);
@@ -198,8 +194,8 @@ public class ParserContext implements Serializable {
 
       @Override
       public void addVariable(String name, Class type, boolean failIfNewAssignment) {
-        if ((_parent.variables != null && _parent.variables.containsKey(name))
-                || (_parent.inputs != null && _parent.inputs.containsKey(name))) {
+        if ((parent.variables != null && parent.variables.containsKey(name))
+            || (parent.inputs != null && parent.inputs.containsKey(name))) {
           this.variablesEscape = true;
         }
         super.addVariable(name, type, failIfNewAssignment);
@@ -207,22 +203,14 @@ public class ParserContext implements Serializable {
 
       @Override
       public Class getVarOrInputType(String name) {
-        if ((_parent.variables != null && _parent.variables.containsKey(name))
-                || (_parent.inputs != null && _parent.inputs.containsKey(name))) {
+        if ((parent.variables != null && parent.variables.containsKey(name))
+            || (parent.inputs != null && parent.inputs.containsKey(name))) {
           this.variablesEscape = true;
         }
 
         return super.getVarOrInputType(name);
       }
     };
-  }
-
-  public ParserContext createColoringSubcontext() {
-    if (parent == null) {
-      throw new RuntimeException("create a subContext first");
-    }
-
-    ParserContext ctx = prepareColoringSubcontext(parserConfiguration, parent);
     ctx.initializeTables();
 
     ctx.sourceFile = sourceFile;
