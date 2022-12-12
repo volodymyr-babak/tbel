@@ -500,7 +500,7 @@ public class AbstractParser implements Parser, Serializable {
                   end = cursor;
                   skipWhitespace();
 
-                  if (cursor != end && expr[cursor] == '=') {
+                  if (cursor < expr.length && expr[cursor] == '=') {
                     if (end == (cursor = st))
                       throw new CompileException("illegal use of reserved word: var", expr, st);
                     this.lastWasVar = true;
@@ -1361,7 +1361,12 @@ public class AbstractParser implements Parser, Serializable {
    */
   private ASTNode createOperator(final char[] expr, final int start, final int end) {
     lastWasIdentifier = false;
-    return lastNode = new OperatorNode(OPERATORS.get(new String(expr, start, end - start)), expr, start, pCtx);
+    String operatorString = new String(expr, start, end - start);
+    Integer operator = OPERATORS.get(operatorString);
+    if (operator == null) {
+      throw new CompileException("Invalid operator: " + operatorString, expr, start);
+    }
+    return lastNode = new OperatorNode(operator, expr, start, pCtx);
   }
 
   /**

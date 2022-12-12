@@ -66,6 +66,45 @@ public class TbExpressionsTest extends TestCase {
         assertEquals(1, ((Map) res).get("test"));
     }
 
+    public void testAssignmentWhitespaces() {
+        Object res = executeScript("var m= 2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("var m=2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("var m =2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("m=2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("m= 2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("int m= 2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("int m=2; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("int m=2; m=3; m= 4; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(4, res);
+        res = executeScript("int m=2; m+=3; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(5, res);
+        res = executeScript("int m=2; m +=3; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(5, res);
+        res = executeScript("int m=2; m+= 3; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(5, res);
+        res = executeScript("int m=2; m\n+=\n3; m");
+        assertTrue(res instanceof Integer);
+        assertEquals(5, res);
+    }
+
     public void testNonExistentMapField() {
         Object res = executeScript("m = {}; t = m.test; t");
         assertNull(res);
@@ -90,7 +129,7 @@ public class TbExpressionsTest extends TestCase {
     }
 
     public void testVariableScope() {
-        Object res = executeScript("var m = 25; " +
+       Object res = executeScript("var m = 25; " +
                                    "function testFunc(a) {" +
                                    "   function testFunc3(e) {" +
                                    "       var m;" +
@@ -111,6 +150,60 @@ public class TbExpressionsTest extends TestCase {
                                    "return testFunc4(m2)");
         assertTrue(res instanceof Integer);
         assertEquals((25 + ((25 * 2 + 2) * 3) + 5) * 2, res);
+
+        res = executeScript("var array = [1, 2, 3];\n" +
+                "function sum(array){\n" +
+                "    var result = 0;\n" +
+                "    for(int i = 0; i < array.length; i++){\n" +
+                "        result += array[i];\n" +
+                "        var element = array[i];\n" +
+                "        result += element;\n" +
+                "    }\n" +
+                "    return result;\n" +
+                "}\n" +
+                "return sum(array)");
+        assertTrue(res instanceof Integer);
+        assertEquals(12, res);
+
+        res = executeScript("var array = [1, 2, 3];\n" +
+                "    var result = 0;\n" +
+                "    for(int i = 0; i < array.length; i++){\n" +
+                "        result += array[i];\n" +
+                "        var element = array[i];\n" +
+                "        result += element;\n" +
+                "    }\n" +
+                "return result");
+        assertTrue(res instanceof Integer);
+        assertEquals(12, res);
+
+        res = executeScript("var array = [1, 2, 3];\n" +
+                "function sum(array){\n" +
+                "    var result = 0;\n" +
+                "    var i = 0;\n" +
+                "    while(i < array.length){\n" +
+                "        result += array[i];\n" +
+                "        var element = array[i];\n" +
+                "        result += element;\n" +
+                "        i++;\n" +
+                "    }\n" +
+                "    return result;\n" +
+                "}\n" +
+                "return sum(array)");
+        assertTrue(res instanceof Integer);
+        assertEquals(12, res);
+
+        res = executeScript("var array = [1, 2, 3];\n" +
+                "    var result = 0;\n" +
+                "    var i = 0;\n" +
+                "    while(i < array.length){\n" +
+                "        result += array[i];\n" +
+                "        var element = array[i];\n" +
+                "        result += element;\n" +
+                "        i++;\n" +
+                "    }\n" +
+                "return result");
+        assertTrue(res instanceof Integer);
+        assertEquals(12, res);
     }
 
     public void testComments() {

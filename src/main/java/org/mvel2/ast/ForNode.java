@@ -134,6 +134,7 @@ public class ForNode extends BlockNode {
       this.compiledBlock = (ExecutableStatement) subCompileExpression(expr, blockStart, blockEnd, spCtx);
       if (pCtx != null) {
         pCtx.setInputs(spCtx.getInputs());
+        pCtx.addVariables(spCtx.getVariables());
       }
     }
     catch (NegativeArraySizeException e) {
