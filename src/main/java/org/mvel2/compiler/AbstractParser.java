@@ -493,7 +493,8 @@ public class AbstractParser implements Parser, Serializable {
 
               case UNTYPED_VAR:
                 int end;
-                st = cursor + 1;
+                skipWhitespace();
+                st = cursor;
 
                 while (true) {
                   captureToEOT();

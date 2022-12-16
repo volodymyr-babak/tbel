@@ -103,6 +103,27 @@ public class TbExpressionsTest extends TestCase {
         res = executeScript("int m=2; m\n+=\n3; m");
         assertTrue(res instanceof Integer);
         assertEquals(5, res);
+        res = executeScript("var \n\n  m= 2;     m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("var   m= 2;     m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("var  m= 2;     m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("var m= 2;     m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("int   m =  2;     m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("  \n\n    m  \n\n  =  \n\n 2;  \n\n   m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
+        res = executeScript("  \n\n  var \n\n  m  \n\n  =  \n\n 2;  \n\n   m");
+        assertTrue(res instanceof Integer);
+        assertEquals(2, res);
     }
 
     public void testNonExistentMapField() {
