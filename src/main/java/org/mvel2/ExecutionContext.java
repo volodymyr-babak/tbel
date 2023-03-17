@@ -225,7 +225,7 @@ public class ExecutionContext implements Serializable {
         } else if (value instanceof Double) {
             return 8;
         } else if (value instanceof BigInteger) {
-            return 32;
+            return ((BigInteger) value).bitLength()/8 + 1;
         } else if (value instanceof Boolean) {
             return 1;
         } else if (value instanceof UUID) {
